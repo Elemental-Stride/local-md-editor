@@ -1,0 +1,28 @@
+{
+  "name": "@local-md-editor/webview",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.config.mjs && pnpm build:css",
+    "build:css": "tailwindcss -i ./src/styles.css -o ../extension/dist/webview/styles.css --minify",
+    "dev": "concurrently \"node esbuild.config.mjs --watch\" \"pnpm build:css --watch\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf ../extension/dist/webview"
+  },
+  "dependencies": {
+    "@local-md-editor/shared": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@types/vscode-webview": "^1.57.5",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.0.1",
+    "esbuild": "^0.24.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13"
+  }
+}

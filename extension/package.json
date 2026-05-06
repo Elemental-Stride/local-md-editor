@@ -1,0 +1,47 @@
+{
+  "name": "local-md-editor",
+  "displayName": "Local MD Editor",
+  "description": "Local-first, privacy-focused, Notion-like Markdown editor",
+  "version": "0.0.1",
+  "publisher": "local-md-editor",
+  "private": true,
+  "type": "commonjs",
+  "main": "./dist/extension.js",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "localMdEditor.editor",
+        "displayName": "Local MD Editor",
+        "selector": [
+          { "filenamePattern": "*.md" },
+          { "filenamePattern": "*.markdown" }
+        ],
+        "priority": "option"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@local-md-editor/shared": "workspace:*",
+    "node-html-parser": "^6.1.13",
+    "remark-gfm": "^4.0.0",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^20.16.10",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.24.0"
+  }
+}
