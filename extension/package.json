@@ -43,6 +43,6 @@
     "@types/mdast": "^4.0.4",
     "@types/node": "^20.16.10",
     "@types/vscode": "^1.90.0",
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.25.0"
   }
 }
