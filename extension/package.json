@@ -7,6 +7,7 @@
   "private": true,
   "type": "commonjs",
   "main": "./dist/extension.js",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.90.0"
   },
