@@ -1,0 +1,42 @@
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import type { BlockId, Document } from "@local-md-editor/shared";
+import type { FocusIntent } from "../../../types/document.js";
+
+type Args = {
+  setDoc: Dispatch<SetStateAction<Document | null>>;
+};
+
+type Return = {
+  focus: FocusIntent | null;
+  setFocus: Dispatch<SetStateAction<FocusIntent | null>>;
+  navigateOut: (blockId: BlockId, dir: "up" | "down") => void;
+};
+
+// フォーカス遷移の状態と handler。doc 自体は変更せず、focus のみ更新する。
+// navigateOut は ↑/↓ で隣接ブロックの先頭/末尾にキャレットを移す。
+export const useDocumentNavigation = ({ setDoc }: Args): Return => {
+  const [focus, setFocus] = useState<FocusIntent | null>(null);
+
+  // フォーカス指示は一度消費されたらすぐクリアする（再レンダで同じ意図が
+  // 再適用されるのを防ぐため）。
+  useEffect(() => {
+    if (focus === null) return;
+    const t = setTimeout(() => setFocus(null), 0);
+    return () => clearTimeout(t);
+  }, [focus]);
+
+  const navigateOut = (blockId: BlockId, dir: "up" | "down"): void => {
+    setDoc((prev) => {
+      if (!prev) return prev;
+      const idx = prev.blocks.findIndex((b) => b.id === blockId);
+      if (idx === -1) return prev;
+      const targetIdx = dir === "up" ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= prev.blocks.length) return prev;
+      const target = prev.blocks[targetIdx];
+      setFocus({ id: target.id, cursor: dir === "up" ? "end" : "start" });
+      return prev;
+    });
+  };
+
+  return { focus, setFocus, navigateOut };
+};

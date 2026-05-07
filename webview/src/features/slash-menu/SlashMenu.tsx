@@ -1,4 +1,5 @@
-import { type Block, type TableBlock, tableBlockToHtml } from "@local-md-editor/shared";
+import { type TableBlock, tableBlockToHtml } from "@local-md-editor/shared";
+import type { SlashItem } from "./types/types.js";
 
 const makeTableId = (prefix: string): string =>
   `${prefix}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -32,14 +33,6 @@ const defaultTable = (id: string): TableBlock => {
   ];
   const block: TableBlock = { id, kind: "table", source: "", rows };
   return { ...block, source: tableBlockToHtml(block) };
-};
-
-export type SlashItem = {
-  id: string;
-  label: string;
-  hint: string;
-  apply: (block: Block) => Block;
-  thenInsertAfter?: boolean;
 };
 
 export const SLASH_ITEMS: SlashItem[] = [

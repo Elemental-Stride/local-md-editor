@@ -1,7 +1,7 @@
 import { useState, type DragEvent } from "react";
 import type { Block, BlockId, Document } from "@local-md-editor/shared";
-import type { FocusIntent } from "../App.js";
-import { BlockView } from "./BlockView.js";
+import type { FocusIntent } from "../../types/document.js";
+import { BlockView } from "../block/index.js";
 
 type Props = {
   document: Document;
