@@ -30,7 +30,7 @@ const startListener = (): void => {
 // http(s) は CSP でブロックされるので解決不能扱い。
 export const classifyUrl = (
   url: string,
-): { kind: "passthrough"; uri: string } | { kind: "remote" } | { kind: "relative" } => {
+): { kind: "passthrough"; uri: string; } | { kind: "remote"; } | { kind: "relative"; } => {
   if (url === "") return { kind: "remote" };
   if (url.startsWith("data:")) return { kind: "passthrough", uri: url };
   if (url.startsWith("blob:")) return { kind: "passthrough", uri: url };

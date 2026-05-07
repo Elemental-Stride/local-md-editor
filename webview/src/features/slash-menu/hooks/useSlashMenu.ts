@@ -1,5 +1,5 @@
-import { type RefObject, useEffect, useState } from "react";
 import type { Block } from "@local-md-editor/shared";
+import { type RefObject, useEffect, useState } from "react";
 import { filterItems } from "../SlashMenu.js";
 import type { SlashItem, SlashMenuController } from "../types/types.js";
 

@@ -1,12 +1,7 @@
+import type { Block, BlockId, Document, ParagraphBlock } from "@local-md-editor/shared";
 import type { Dispatch, SetStateAction } from "react";
-import type {
-  Block,
-  BlockId,
-  Document,
-  ParagraphBlock,
-} from "@local-md-editor/shared";
-import { post } from "../../../vscode.js";
 import type { FocusIntent } from "../../../types/document.js";
+import { post } from "../../../vscode.js";
 import type { BlockBuilders } from "./useBlockBuilders.js";
 
 type Args = {

@@ -1,3 +1,4 @@
+import type { CodeBlock } from "@local-md-editor/shared";
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -6,7 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import type { CodeBlock } from "@local-md-editor/shared";
 import { LANG_OPTIONS } from "../highlight/index.js";
 import { CodeBlockPreview } from "./CodeBlockPreview.js";
 

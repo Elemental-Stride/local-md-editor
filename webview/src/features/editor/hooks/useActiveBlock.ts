@@ -1,5 +1,5 @@
-import { type Dispatch, type SetStateAction, useState } from "react";
 import type { BlockId, Document } from "@local-md-editor/shared";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import { post } from "../../../vscode.js";
 
 type Args = {

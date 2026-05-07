@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import mermaid from "mermaid";
+import { useEffect, useRef, useState } from "react";
 
 // VS Code が body に付与するテーマクラスから dark/light を判定する。
 // 高コントラストも dark 寄りにまとめる。テーマ動的切替は MVP では未対応で、
@@ -76,7 +76,8 @@ export const MermaidView = ({ value }: Props): JSX.Element => {
   }
   if (error) {
     return (
-      <pre className="m-0 whitespace-pre-wrap px-3 py-2 font-mono text-xs"
+      <pre
+        className="m-0 whitespace-pre-wrap px-3 py-2 font-mono text-xs"
         style={{ color: "var(--vscode-errorForeground, #f88)" }}
       >
         Mermaid 構文エラー: {error}

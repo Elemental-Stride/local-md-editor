@@ -1,5 +1,5 @@
-import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import type { Block } from "@local-md-editor/shared";
+import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { contentOf } from "../blockTransforms.js";
 
 type Args = {
@@ -12,7 +12,7 @@ type Return = {
   editing: boolean;
   setEditing: (next: boolean) => void;
   taRef: RefObject<HTMLTextAreaElement>;
-  enteredViaClick: { current: boolean };
+  enteredViaClick: { current: boolean; };
 };
 
 // 編集モードの開閉と textarea のサイズ・カーソル位置を司る hook。

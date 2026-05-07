@@ -81,7 +81,7 @@ export const reclassify = (current: Block, source: string): Block => {
   if (headingMatch) {
     const level = headingMatch[1].length as HeadingBlock["level"];
     if (current.kind === "heading" && current.level === level) {
-      return { ...current, source };
+      return { ...current, source, inlines: [] };
     }
     return { id: current.id, kind: "heading", level, source, inlines: [] };
   }
@@ -90,22 +90,22 @@ export const reclassify = (current: Block, source: string): Block => {
   if (taskMatch) {
     const checked = taskMatch[1].toLowerCase() === "x";
     if (current.kind === "taskItem") {
-      return { ...current, source, checked };
+      return { ...current, source, checked, inlines: [] };
     }
     return { id: current.id, kind: "taskItem", checked, source, inlines: [] };
   }
 
   if (/^\s*[-*+] /.test(source)) {
-    if (current.kind === "bulletItem") return { ...current, source };
+    if (current.kind === "bulletItem") return { ...current, source, inlines: [] };
     return { id: current.id, kind: "bulletItem", source, inlines: [] };
   }
 
   if (/^\s*\d+[.)] /.test(source)) {
-    if (current.kind === "orderedItem") return { ...current, source };
+    if (current.kind === "orderedItem") return { ...current, source, inlines: [] };
     return { id: current.id, kind: "orderedItem", source, inlines: [] };
   }
 
-  if (current.kind === "paragraph") return { ...current, source };
+  if (current.kind === "paragraph") return { ...current, source, inlines: [] };
   return { id: current.id, kind: "paragraph", source, inlines: [] };
 };
 
@@ -128,7 +128,7 @@ const sourceIndent = (source: string): number => {
   return m ? m[0].length : 0;
 };
 
-export const indentStyle = (source: string): { paddingLeft: string } | undefined => {
+export const indentStyle = (source: string): { paddingLeft: string; } | undefined => {
   const n = sourceIndent(source);
   if (n === 0) return undefined;
   return { paddingLeft: `${n * 0.5}rem` };

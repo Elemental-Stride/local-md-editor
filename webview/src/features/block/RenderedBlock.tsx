@@ -1,13 +1,13 @@
-import type { ReactNode } from "react";
 import {
   type Block,
   type BulletItemBlock,
   type HeadingBlock,
   type OrderedItemBlock,
-  parseInlines,
   type ParagraphBlock,
+  parseInlines,
   type TaskItemBlock,
 } from "@local-md-editor/shared";
+import type { ReactNode } from "react";
 import { renderInlines } from "../inline-render/index.js";
 import {
   contentOf,
@@ -46,9 +46,7 @@ export const RenderedBlock = ({ block, onChange }: Props): JSX.Element => {
       return <Tag className={headingClass[block.level]}>{renderContent(block)}</Tag>;
     }
     case "paragraph":
-      return (
-        <p className="whitespace-pre-wrap leading-relaxed">{renderContent(block)}</p>
-      );
+      return <p className="whitespace-pre-wrap leading-relaxed">{renderContent(block)}</p>;
     case "bulletItem":
       return (
         <div className="flex gap-2" style={indentStyle(block.source)}>

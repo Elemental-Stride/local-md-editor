@@ -28,8 +28,7 @@ pnpm build
 
 ## 開発
 
-VS Code でこのフォルダを開き、`F5`（Run Extension）で拡張ホストを起動。
-新しい VS Code ウィンドウで `.md` を「アプリケーションで開く」→ `Local MD Editor` を選択。
+VS Code でこのフォルダを開き、`F5`（Run Extension）で拡張ホストを起動。 新しい VS Code ウィンドウで `.md` を「アプリケーションで開く」→ `Local MD Editor` を選択。
 
 ウォッチモードで開発する場合：
 
@@ -45,28 +44,28 @@ pnpm dev
 
 空のブロックで `/` を入力するとメニューが開き、`↑` `↓` で選択 / `Enter` で確定します。
 
-| コマンド | 種別 |
-| --- | --- |
-| `/text` | 段落 |
-| `/h1` `/h2` `/h3` | 見出し |
-| `/list` | 箇条書き |
-| `/numbered` | 番号付きリスト |
-| `/todo` | チェックボックス |
-| `/divider` | 区切り線 |
-| `/table` | テーブル |
+| コマンド          | 種別             |
+| ----------------- | ---------------- |
+| `/text`           | 段落             |
+| `/h1` `/h2` `/h3` | 見出し           |
+| `/list`           | 箇条書き         |
+| `/numbered`       | 番号付きリスト   |
+| `/todo`           | チェックボックス |
+| `/divider`        | 区切り線         |
+| `/table`          | テーブル         |
 
 行頭で Markdown 記法（`#`、`-`、`1.`、`- [ ]` の後ろに半角スペース）を直接タイプしてもブロック種別が自動で切り替わります。
 
 ### キーボード操作
 
-| キー | 動作 |
-| --- | --- |
-| `Enter` | カーソル位置でブロックを分割 |
-| `Shift + Enter` | ブロック内で改行 |
-| `Cmd / Ctrl + Enter` | 直後に新しい段落を挿入 |
-| `Tab` / `Shift + Tab` | インデント / アンインデント |
+| キー                  | 動作                                                 |
+| --------------------- | ---------------------------------------------------- |
+| `Enter`               | カーソル位置でブロックを分割                         |
+| `Shift + Enter`       | ブロック内で改行                                     |
+| `Cmd / Ctrl + Enter`  | 直後に新しい段落を挿入                               |
+| `Tab` / `Shift + Tab` | インデント / アンインデント                          |
 | `Backspace`（行頭で） | リスト・見出しを段落に降格、空なら前のブロックへ移動 |
-| `Esc` | 編集を終了 |
+| `Esc`                 | 編集を終了                                           |
 
 ### ブロックの並べ替え
 
@@ -78,15 +77,15 @@ Markdown 記法をそのまま書けます: `**太字**` / `*イタリック*` /
 
 ## スクリプト
 
-| コマンド | 内容 |
-| --- | --- |
-| `pnpm build` | shared / extension / webview をビルド |
-| `pnpm dev` | extension と webview をウォッチ |
-| `pnpm typecheck` | 全パッケージで型チェック |
-| `pnpm lint` | oxlint でリント |
-| `pnpm format` | dprint でフォーマット |
-| `pnpm format:check` | フォーマット差分チェック |
-| `pnpm clean` | ビルド成果物を削除 |
+| コマンド            | 内容                                  |
+| ------------------- | ------------------------------------- |
+| `pnpm build`        | shared / extension / webview をビルド |
+| `pnpm dev`          | extension と webview をウォッチ       |
+| `pnpm typecheck`    | 全パッケージで型チェック              |
+| `pnpm lint`         | oxlint でリント                       |
+| `pnpm format`       | dprint でフォーマット                 |
+| `pnpm format:check` | フォーマット差分チェック              |
+| `pnpm clean`        | ビルド成果物を削除                    |
 
 ## 構成
 

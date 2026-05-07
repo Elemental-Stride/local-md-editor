@@ -1,5 +1,5 @@
-import type { KeyboardEvent, RefObject } from "react";
 import type { Block, BlockId } from "@local-md-editor/shared";
+import type { KeyboardEvent, RefObject } from "react";
 import type { SlashMenuController } from "../../slash-menu/index.js";
 import { contentOf } from "../blockTransforms.js";
 

@@ -1,15 +1,15 @@
-import type { DragEvent } from "react";
 import type { Block, BlockId } from "@local-md-editor/shared";
+import type { DragEvent } from "react";
 import { CodeBlockView } from "../code-block/index.js";
 import { useLinkPrompt } from "../link-modal/index.js";
 import { useSlashMenu } from "../slash-menu/index.js";
 import { TableView } from "../table/index.js";
 import { BlockEditor } from "./BlockEditor.js";
-import { RenderedBlock } from "./RenderedBlock.js";
 import { searchHighlightClass } from "./blockTransforms.js";
 import { useBlockEditing } from "./hooks/useBlockEditing.js";
 import { useBlockKeyHandler } from "./hooks/useBlockKeyHandler.js";
 import { useImageDrop } from "./hooks/useImageDrop.js";
+import { RenderedBlock } from "./RenderedBlock.js";
 
 type Props = {
   block: Block;
@@ -23,7 +23,7 @@ type Props = {
   onDragStart?: (e: DragEvent<HTMLElement>) => void;
   initiallyEditing?: boolean;
   initialCursor?: "start" | "end";
-  searchHighlight?: { current: boolean } | null;
+  searchHighlight?: { current: boolean; } | null;
 };
 
 // すべてのフックは早期 return より上で必ず呼ぶ。block.kind がテキスト系と

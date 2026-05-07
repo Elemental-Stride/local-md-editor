@@ -1,4 +1,12 @@
 import {
+  parseInlines,
+  type TableBlock,
+  tableBlockToHtml,
+  type TableCell,
+  type TableCellId,
+  type TableRow,
+} from "@local-md-editor/shared";
+import {
   type DragEvent,
   Fragment,
   type MouseEvent,
@@ -7,14 +15,6 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  parseInlines,
-  type TableBlock,
-  type TableCell,
-  type TableCellId,
-  type TableRow,
-  tableBlockToHtml,
-} from "@local-md-editor/shared";
 import { renderInlines } from "../inline-render/index.js";
 
 type Props = {
@@ -81,8 +81,7 @@ const IconButton = (
       }}
       onMouseEnter={(e) => {
         if (disabled) return;
-        (e.currentTarget as HTMLButtonElement).style.background =
-          "var(--hover-bg)";
+        (e.currentTarget as HTMLButtonElement).style.background = "var(--hover-bg)";
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLButtonElement).style.background = "transparent";
@@ -148,7 +147,14 @@ const RemoveColIcon = (): JSX.Element => (
 );
 
 const TrashIcon = (): JSX.Element => (
-  <svg width="16" height="16" viewBox="0 0 16 16" {...stroke} strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    {...stroke}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M3 4.5 H13" />
     <path d="M5.5 4.5 V13 H10.5 V4.5" />
     <path d="M7 7 V11 M9 7 V11" />
@@ -156,7 +162,7 @@ const TrashIcon = (): JSX.Element => (
   </svg>
 );
 
-type GridSlot = { cellId: TableCellId | null };
+type GridSlot = { cellId: TableCellId | null; };
 
 const buildLogicalGrid = (block: TableBlock): {
   grid: GridSlot[][];
@@ -168,8 +174,9 @@ const buildLogicalGrid = (block: TableBlock): {
   for (const row of block.rows) for (const c of row.cells) cells.set(c.id, c);
   const layout = computeLayout(block);
   const numCols = layout.numCols;
-  const grid: GridSlot[][] = Array.from({ length: numRows }, () =>
-    Array.from({ length: numCols }, () => ({ cellId: null }))
+  const grid: GridSlot[][] = Array.from(
+    { length: numRows },
+    () => Array.from({ length: numCols }, () => ({ cellId: null })),
   );
   for (const [id, pos] of layout.positions) {
     const cell = cells.get(id);
@@ -196,7 +203,7 @@ const rebuildFromGrid = (
 ): TableRow[] => {
   if (grid.length === 0) return [];
   const numCols = grid[0]?.length ?? 0;
-  type BBox = { rmin: number; cmin: number; rmax: number; cmax: number };
+  type BBox = { rmin: number; cmin: number; rmax: number; cmax: number; };
   const bboxes = new Map<TableCellId, BBox>();
   for (let r = 0; r < grid.length; r++) {
     for (let c = 0; c < numCols; c++) {
@@ -313,16 +320,14 @@ const deleteRowAt = (block: TableBlock, rowIndex: number): TableBlock => {
 const deleteColumnAt = (block: TableBlock, colIndex: number): TableBlock => {
   const { grid, cells } = buildLogicalGrid(block);
   const rowIds = block.rows.map((r) => r.id);
-  const newGrid = grid.map((row) =>
-    [...row.slice(0, colIndex), ...row.slice(colIndex + 1)]
-  );
+  const newGrid = grid.map((row) => [...row.slice(0, colIndex), ...row.slice(colIndex + 1)]);
   return { ...block, rows: rebuildFromGrid(newGrid, cells, rowIds) };
 };
 
 const makeTableId = (prefix: string): string =>
   `${prefix}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
-type LayoutPos = { r: number; c: number; rowspan: number; colspan: number };
+type LayoutPos = { r: number; c: number; rowspan: number; colspan: number; };
 
 const computeLayout = (block: TableBlock): {
   positions: Map<TableCellId, LayoutPos>;
@@ -444,7 +449,7 @@ export const TableView = (
     }
     // 左上が選択範囲の矩形内にあるセルを集める（部分選択でもきれいな
     // 矩形として結合できるように）。
-    const cellsInRect: { cell: TableCell; pos: LayoutPos }[] = [];
+    const cellsInRect: { cell: TableCell; pos: LayoutPos; }[] = [];
     for (const [id, p] of positions) {
       if (p.r >= rmin && p.r <= rmax && p.c >= cmin && p.c <= cmax) {
         const c = findCell(block, id);
@@ -524,7 +529,10 @@ export const TableView = (
         };
         rows = rows.map((row, idx) =>
           idx === targetR
-            ? { ...row, cells: [...row.cells.slice(0, insertIdx), newCell, ...row.cells.slice(insertIdx)] }
+            ? {
+              ...row,
+              cells: [...row.cells.slice(0, insertIdx), newCell, ...row.cells.slice(insertIdx)],
+            }
             : row
         );
       }
