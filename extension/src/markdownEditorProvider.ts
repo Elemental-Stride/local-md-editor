@@ -41,7 +41,11 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       void webview.postMessage(msg);
     };
 
-    let updatingFromWebview = false;
+    // 自前 applyEdit による change event を抑制するため、これから発生する
+    // 版番号を事前に登録しておく。boolean フラグだと change event が
+    // マイクロタスク / マクロタスクのどちらで届くかに依存して取りこぼすが、
+    // version ベースなら順序とタイミングに左右されない。
+    const pendingVersions = new Set<number>();
 
     const sendInit = (): void => {
       post({ type: "init", document: markdownToDocument(document.getText()) });
@@ -49,13 +53,20 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
 
     const docChange = vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.uri.toString() !== document.uri.toString()) return;
-      if (updatingFromWebview) return;
-      post({ type: "update", document: markdownToDocument(document.getText()) });
+      if (pendingVersions.delete(e.document.version)) return;
+      post({
+        type: "update",
+        document: markdownToDocument(document.getText()),
+        reason: "external",
+      });
     });
 
     const persist = async (next: string): Promise<void> => {
       if (next === document.getText()) return;
-      updatingFromWebview = true;
+      // applyEdit が成功すると document.version は単調に +1 される。
+      // 事前に予約しておけば change event 側で確実にマッチさせられる。
+      const expectedVersion = document.version + 1;
+      pendingVersions.add(expectedVersion);
       try {
         const edit = new vscode.WorkspaceEdit();
         edit.replace(
@@ -63,9 +74,12 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           new vscode.Range(0, 0, document.lineCount, 0),
           next,
         );
-        await vscode.workspace.applyEdit(edit);
-      } finally {
-        updatingFromWebview = false;
+        const ok = await vscode.workspace.applyEdit(edit);
+        // 失敗時は change event が来ないので予約をクリアして leak を防ぐ。
+        if (!ok) pendingVersions.delete(expectedVersion);
+      } catch (e) {
+        pendingVersions.delete(expectedVersion);
+        throw e;
       }
     };
 
@@ -85,7 +99,11 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           // 正しく見られるようにするため（単一ブロックを単独パースさせない）。
           const next = documentToMarkdown(raw.document);
           await persist(next);
-          post({ type: "update", document: markdownToDocument(next) });
+          post({
+            type: "update",
+            document: markdownToDocument(next),
+            reason: "commit-echo",
+          });
           return;
         }
         case "openLink": {

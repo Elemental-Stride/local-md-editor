@@ -1,5 +1,12 @@
 import type { BlockId, Document } from "@local-md-editor/shared";
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import {
+  type Dispatch,
+  type MutableRefObject,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { FocusIntent } from "../../../types/document.js";
 
 type Args = {
@@ -9,6 +16,8 @@ type Args = {
 type Return = {
   focus: FocusIntent | null;
   setFocus: Dispatch<SetStateAction<FocusIntent | null>>;
+  // 履歴記録時に「直前のフォーカスヒント」を読みたい用途で使う ref。
+  focusRef: MutableRefObject<FocusIntent | null>;
   navigateOut: (blockId: BlockId, dir: "up" | "down") => void;
 };
 
@@ -17,6 +26,11 @@ type Return = {
 // 移動先ブロックの「末尾」にカーソルを置く（次の入力をすぐ続けられる挙動）。
 export const useDocumentNavigation = ({ setDoc }: Args): Return => {
   const [focus, setFocus] = useState<FocusIntent | null>(null);
+  const focusRef = useRef<FocusIntent | null>(null);
+
+  useEffect(() => {
+    focusRef.current = focus;
+  }, [focus]);
 
   // フォーカス指示は一度消費されたらすぐクリアする（再レンダで同じ意図が
   // 再適用されるのを防ぐため）。
@@ -39,5 +53,5 @@ export const useDocumentNavigation = ({ setDoc }: Args): Return => {
     });
   };
 
-  return { focus, setFocus, navigateOut };
+  return { focus, setFocus, focusRef, navigateOut };
 };
