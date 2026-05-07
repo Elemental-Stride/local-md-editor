@@ -2,16 +2,36 @@
   "name": "local-md-editor",
   "displayName": "Local MD Editor",
   "description": "Local-first, privacy-focused, Notion-like Markdown editor",
-  "version": "0.0.1",
-  "publisher": "local-md-editor",
+  "version": "0.1.0",
+  "publisher": "elemental-stride",
+  "license": "MIT",
   "private": true,
   "type": "commonjs",
   "main": "./dist/extension.js",
   "icon": "icon.png",
+  "homepage": "https://github.com/Elemental-Stride/local-md-editor",
+  "bugs": {
+    "url": "https://github.com/Elemental-Stride/local-md-editor/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Elemental-Stride/local-md-editor.git",
+    "directory": "extension"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
-  "categories": ["Other"],
+  "categories": ["Other", "Visualization"],
+  "keywords": [
+    "markdown",
+    "editor",
+    "notion",
+    "block",
+    "local-first",
+    "privacy",
+    "offline",
+    "wysiwyg"
+  ],
   "activationEvents": [],
   "contributes": {
     "customEditors": [
@@ -30,7 +50,10 @@
     "build": "node esbuild.config.mjs",
     "dev": "node esbuild.config.mjs --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "vscode:prepublish": "cp ../README.md ../LICENSE ../CHANGELOG.md .",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
   },
   "dependencies": {
     "@local-md-editor/shared": "workspace:*",
@@ -43,6 +66,7 @@
     "@types/mdast": "^4.0.4",
     "@types/node": "^20.16.10",
     "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.0",
     "esbuild": "^0.25.0"
   }
 }

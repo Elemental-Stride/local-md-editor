@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import type { InlineToken } from "@local-md-editor/shared";
-import { post } from "../vscode.js";
-import { classifyUrl, useResolvedUri } from "../resources.js";
+import { post } from "../../vscode.js";
+import { classifyUrl, useResolvedUri } from "../../resources.js";
 
 export const renderInlines = (tokens: InlineToken[]): ReactNode =>
   tokens.map((t, i) => <InlineNode key={i} token={t} />);

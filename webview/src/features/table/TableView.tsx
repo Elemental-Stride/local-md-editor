@@ -15,7 +15,7 @@ import {
   type TableRow,
   tableBlockToHtml,
 } from "@local-md-editor/shared";
-import { renderInlines } from "./InlineRenderer.js";
+import { renderInlines } from "../inline-render/index.js";
 
 type Props = {
   block: TableBlock;

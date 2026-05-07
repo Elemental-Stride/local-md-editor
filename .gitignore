@@ -8,3 +8,9 @@ out/
 
 # tsbuildinfo
 *.tsbuildinfo
+
+# vsce package staging — copied from repo root by extension/package.json's
+# vscode:prepublish script. The originals at the repo root are the SSOT.
+extension/README.md
+extension/LICENSE
+extension/CHANGELOG.md

@@ -355,4 +355,5 @@ export const LANG_OPTIONS: { value: string; label: string }[] = [
   { value: "md", label: "Markdown" },
   { value: "sql", label: "SQL" },
   { value: "yaml", label: "YAML" },
+  { value: "mermaid", label: "Mermaid" },
 ];

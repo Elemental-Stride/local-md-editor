@@ -7,7 +7,8 @@ import {
   useState,
 } from "react";
 import type { CodeBlock } from "@local-md-editor/shared";
-import { LANG_OPTIONS, TOKEN_CLASS, tokenize } from "../highlight.js";
+import { LANG_OPTIONS } from "../highlight/index.js";
+import { CodeBlockPreview } from "./CodeBlockPreview.js";
 
 type Props = {
   block: CodeBlock;
@@ -118,8 +119,6 @@ export const CodeBlockView = (
     }
   };
 
-  const tokens = tokenize(block.value, block.lang);
-
   return (
     <div
       ref={wrapperRef}
@@ -207,19 +206,13 @@ export const CodeBlockView = (
           />
         )
         : (
-          <pre
-            className="m-0 overflow-x-auto whitespace-pre px-3 py-2 font-mono text-[13px] leading-relaxed"
-            onClick={() => {
+          <CodeBlockPreview
+            block={block}
+            onEnterEdit={() => {
               setEditing(true);
               onFocus?.();
             }}
-          >
-            {tokens.length === 0
-              ? <span className="opacity-40">空のコードブロック</span>
-              : tokens.map((t, i) => (
-                <span key={i} className={TOKEN_CLASS[t.type]}>{t.value}</span>
-              ))}
-          </pre>
+          />
         )}
     </div>
   );
