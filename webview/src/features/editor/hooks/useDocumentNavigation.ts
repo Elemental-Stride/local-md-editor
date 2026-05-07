@@ -13,7 +13,8 @@ type Return = {
 };
 
 // フォーカス遷移の状態と handler。doc 自体は変更せず、focus のみ更新する。
-// navigateOut は ↑/↓ で隣接ブロックの先頭/末尾にキャレットを移す。
+// navigateOut は ↑/↓ で隣接ブロックへキャレットを移す。↑/↓ どちらでも
+// 移動先ブロックの「末尾」にカーソルを置く（次の入力をすぐ続けられる挙動）。
 export const useDocumentNavigation = ({ setDoc }: Args): Return => {
   const [focus, setFocus] = useState<FocusIntent | null>(null);
 
@@ -33,7 +34,7 @@ export const useDocumentNavigation = ({ setDoc }: Args): Return => {
       const targetIdx = dir === "up" ? idx - 1 : idx + 1;
       if (targetIdx < 0 || targetIdx >= prev.blocks.length) return prev;
       const target = prev.blocks[targetIdx];
-      setFocus({ id: target.id, cursor: dir === "up" ? "end" : "start" });
+      setFocus({ id: target.id, cursor: "end" });
       return prev;
     });
   };
