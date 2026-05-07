@@ -1,5 +1,5 @@
 import type { Block } from "@local-md-editor/shared";
-import { type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { contentOf } from "../blockTransforms.js";
 
 type Args = {
@@ -23,6 +23,27 @@ export const useBlockEditing = ({ block, initiallyEditing, initialCursor }: Args
   const taRef = useRef<HTMLTextAreaElement>(null);
   const initialEditMount = useRef(initiallyEditing);
   const enteredViaClick = useRef(false);
+
+  // initiallyEditing が false → true へ動くのは、別ブロックから ↑/↓ で
+  // navigateOut されてフォーカスが回ってきたとき。useState は初期値しか
+  // 反映しないため、再エントリでは editing 状態を明示的に立て直し、
+  // initialEditMount を再アームして initialCursor の位置にカーソルを置かせる。
+  // useLayoutEffect でも同じ位置に置くつもりだが、textarea の autoFocus と
+  // layout effect の前後関係でカーソルが先頭に残ることがあるため、
+  // requestAnimationFrame で次フレームに再度カーソルを確定させる。
+  useEffect(() => {
+    if (!initiallyEditing) return;
+    setEditing(true);
+    initialEditMount.current = true;
+    const cursor = initialCursor;
+    const handle = requestAnimationFrame(() => {
+      const ta = taRef.current;
+      if (!ta) return;
+      const pos = cursor === "start" ? 0 : ta.value.length;
+      ta.setSelectionRange(pos, pos);
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [initiallyEditing, initialCursor]);
 
   // フォントサイズが変わるブロック（heading / 段落 etc）でサイズ計算を
   // やり直すために heading の level も依存に入れる。
