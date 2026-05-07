@@ -2,3 +2,9 @@ packages:
   - shared
   - extension
   - webview
+
+onlyBuiltDependencies:
+  - "@vscode/vsce-sign"
+  - dprint
+  - esbuild
+  - keytar

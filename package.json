@@ -1,6 +1,6 @@
 {
   "name": "local-md-editor",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "description": "Local-first, privacy-focused, Notion-like Markdown editor for VS Code",
   "license": "MIT",
@@ -24,8 +24,10 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@vscode/vsce-sign",
       "dprint",
-      "esbuild"
+      "esbuild",
+      "keytar"
     ]
   }
 }
