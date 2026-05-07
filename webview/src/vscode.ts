@@ -1,7 +1,4 @@
-import type {
-  ExtensionToWebviewMessage,
-  WebviewToExtensionMessage,
-} from "@local-md-editor/shared";
+import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from "@local-md-editor/shared";
 
 const api = acquireVsCodeApi<unknown>();
 
@@ -11,7 +8,7 @@ export const post = (msg: WebviewToExtensionMessage): void => {
 
 export const onMessage = (
   handler: (msg: ExtensionToWebviewMessage) => void,
-): (() => void) => {
+): () => void => {
   const listener = (event: MessageEvent): void => {
     handler(event.data as ExtensionToWebviewMessage);
   };

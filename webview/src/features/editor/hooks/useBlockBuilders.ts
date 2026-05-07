@@ -10,8 +10,9 @@ const emptyParagraph = (): ParagraphBlock => ({
   inlines: [],
 });
 
-const indentOf = (block: Block): string =>
-  ("source" in block ? (block.source.match(/^( *)/)?.[0] ?? "") : "");
+const indentOf = (
+  block: Block,
+): string => ("source" in block ? (block.source.match(/^( *)/)?.[0] ?? "") : "");
 
 // 既存ブロックの kind / インデント / マーカーを保ったまま、本文だけを
 // 差し替えた `source` を組み立てる。新しい兄弟ブロックを作る際の
@@ -36,7 +37,7 @@ const sourceWithContent = (block: Block, content: string): string => {
 };
 
 // 番号付きリストの次の項目用のマーカー。元が `3.` なら `4.`、`3)` なら `4)`。
-const nextOrderedMarker = (current: Block): { indent: string; marker: string } => {
+const nextOrderedMarker = (current: Block): { indent: string; marker: string; } => {
   const indent = indentOf(current);
   const m = "source" in current
     ? current.source.match(/^(\s*)(\d+)([.)])\s/)
@@ -92,7 +93,7 @@ export type BlockBuilders = {
   emptyParagraph: () => ParagraphBlock;
   indentOf: (block: Block) => string;
   sourceWithContent: (block: Block, content: string) => string;
-  nextOrderedMarker: (current: Block) => { indent: string; marker: string };
+  nextOrderedMarker: (current: Block) => { indent: string; marker: string; };
   createSiblingWithContent: (current: Block, content: string) => Block;
 };
 

@@ -1,5 +1,5 @@
-import type { DragEvent, KeyboardEvent, ReactNode, RefObject } from "react";
 import type { Block, BlockId } from "@local-md-editor/shared";
+import type { DragEvent, KeyboardEvent, ReactNode, RefObject } from "react";
 import { LinkModal, type LinkPromptController } from "../link-modal/index.js";
 import { SlashMenu, type SlashMenuController } from "../slash-menu/index.js";
 import {
@@ -24,7 +24,7 @@ type Props = {
   linkPrompt: LinkPromptController;
   onKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
   onTextareaDrop: (e: DragEvent<HTMLTextAreaElement>) => void;
-  searchHighlight: { current: boolean } | null | undefined;
+  searchHighlight: { current: boolean; } | null | undefined;
 };
 
 // 編集中（textarea が出ている状態）のブロック表示。スラッシュメニューと

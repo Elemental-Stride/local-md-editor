@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
 import type { BlockId } from "@local-md-editor/shared";
+import { useCallback, useState } from "react";
 
 type Return = {
   searchOpen: boolean;

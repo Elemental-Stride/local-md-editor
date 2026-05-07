@@ -128,7 +128,7 @@ const sourceIndent = (source: string): number => {
   return m ? m[0].length : 0;
 };
 
-export const indentStyle = (source: string): { paddingLeft: string } | undefined => {
+export const indentStyle = (source: string): { paddingLeft: string; } | undefined => {
   const n = sourceIndent(source);
   if (n === 0) return undefined;
   return { paddingLeft: `${n * 0.5}rem` };

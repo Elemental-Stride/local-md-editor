@@ -1,8 +1,5 @@
+import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from "@local-md-editor/shared";
 import * as vscode from "vscode";
-import type {
-  ExtensionToWebviewMessage,
-  WebviewToExtensionMessage,
-} from "@local-md-editor/shared";
 import { documentToMarkdown, markdownToDocument } from "./markdown.js";
 
 export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {

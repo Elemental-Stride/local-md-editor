@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import type { Block, BlockId, Document, ParagraphBlock } from "@local-md-editor/shared";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type Command = {
   id: string;
@@ -11,7 +11,7 @@ export type Command = {
 type Props = {
   document: Document;
   activeBlockId: BlockId | null;
-  onApply: (next: Document, focus?: { id: BlockId; cursor: "start" | "end" }) => void;
+  onApply: (next: Document, focus?: { id: BlockId; cursor: "start" | "end"; }) => void;
   onClose: () => void;
 };
 
@@ -138,9 +138,7 @@ export const CommandPalette = (
   const filtered = useMemo(() => {
     if (filter === "") return commands;
     const q = filter.toLowerCase();
-    return commands.filter((c) =>
-      c.label.toLowerCase().includes(q) || c.id.includes(q)
-    );
+    return commands.filter((c) => c.label.toLowerCase().includes(q) || c.id.includes(q));
   }, [commands, filter]);
 
   useEffect(() => {
@@ -166,9 +164,7 @@ export const CommandPalette = (
         ref={inputRef}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        placeholder={
-          activeBlockId ? "ブロック操作を検索…" : "ブロックを選択してください"
-        }
+        placeholder={activeBlockId ? "ブロック操作を検索…" : "ブロックを選択してください"}
         className="block w-full bg-transparent px-3 py-2 text-sm outline-none"
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing) return;
@@ -187,7 +183,10 @@ export const CommandPalette = (
           }
         }}
       />
-      <div className="max-h-72 overflow-y-auto border-t" style={{ borderColor: "var(--vscode-editorWidget-border)" }}>
+      <div
+        className="max-h-72 overflow-y-auto border-t"
+        style={{ borderColor: "var(--vscode-editorWidget-border)" }}
+      >
         {filtered.length === 0
           ? <div className="px-3 py-2 text-xs opacity-60">該当なし</div>
           : filtered.map((c, i) => (

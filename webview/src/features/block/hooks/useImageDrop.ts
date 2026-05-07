@@ -1,5 +1,5 @@
-import type { DragEvent, RefObject } from "react";
 import type { Block } from "@local-md-editor/shared";
+import type { DragEvent, RefObject } from "react";
 import { contentOf, reclassify, withDisplayValue } from "../blockTransforms.js";
 
 // 1MB を超える画像は markdown へ data URL で埋め込むとファイルが肥大するため取り込まない（黙ってスキップ）。

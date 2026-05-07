@@ -1,13 +1,13 @@
 export type BlockId = string;
 
 export type InlineToken =
-  | { type: "text"; value: string }
-  | { type: "strong"; children: InlineToken[] }
-  | { type: "em"; children: InlineToken[] }
-  | { type: "code"; value: string }
-  | { type: "link"; url: string; title?: string; children: InlineToken[] }
-  | { type: "image"; url: string; alt: string; title?: string }
-  | { type: "break" };
+  | { type: "text"; value: string; }
+  | { type: "strong"; children: InlineToken[]; }
+  | { type: "em"; children: InlineToken[]; }
+  | { type: "code"; value: string; }
+  | { type: "link"; url: string; title?: string; children: InlineToken[]; }
+  | { type: "image"; url: string; alt: string; title?: string; }
+  | { type: "break"; };
 
 export type ParagraphBlock = {
   id: BlockId;

@@ -1,5 +1,5 @@
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import type { BlockId, Document } from "@local-md-editor/shared";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import type { FocusIntent } from "../../../types/document.js";
 
 type Args = {

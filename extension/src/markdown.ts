@@ -1,8 +1,3 @@
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
-import { parse as parseHtml, type HTMLElement as ParsedHtmlElement } from "node-html-parser";
-import type { List, PhrasingContent, Root, RootContent } from "mdast";
 import {
   type Block,
   type BulletItemBlock,
@@ -14,11 +9,16 @@ import {
   type ParagraphBlock,
   type RawBlock,
   type TableBlock,
+  tableBlockToHtml,
   type TableCell,
   type TableRow,
-  tableBlockToHtml,
   type TaskItemBlock,
 } from "@local-md-editor/shared";
+import type { List, PhrasingContent, Root, RootContent } from "mdast";
+import { type HTMLElement as ParsedHtmlElement, parse as parseHtml } from "node-html-parser";
+import remarkGfm from "remark-gfm";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 
 const parser = unified().use(remarkParse).use(remarkGfm);
 
@@ -92,8 +92,13 @@ const TABLE_PREFIX_RE = /^\s*<table[\s>]/i;
 const cellHtmlToText = (cellEl: ParsedHtmlElement): string => {
   let out = "";
   const walk = (node: unknown): void => {
-    const n = node as { nodeType?: number; tagName?: string; text?: string;
-      childNodes?: unknown[]; getAttribute?: (k: string) => string | undefined };
+    const n = node as {
+      nodeType?: number;
+      tagName?: string;
+      text?: string;
+      childNodes?: unknown[];
+      getAttribute?: (k: string) => string | undefined;
+    };
     if (n.nodeType === 3) {
       out += n.text ?? "";
       return;
@@ -179,7 +184,6 @@ const parseTableHtml = (html: string): TableBlock | null => {
   };
 };
 
-
 const extractListBlocks = (node: List, md: string): Block[] => {
   const out: Block[] = [];
   for (const item of node.children) {
@@ -214,12 +218,14 @@ const extractListBlocks = (node: List, md: string): Block[] => {
         const startC = child.position?.start.column;
         if (start === undefined || end === undefined || startC === undefined) continue;
         const ls = start - (startC - 1);
-        after.push({
-          id: newId(),
-          kind: "paragraph",
-          source: md.slice(ls, end),
-          inlines: buildInlines(child.children),
-        } satisfies ParagraphBlock);
+        after.push(
+          {
+            id: newId(),
+            kind: "paragraph",
+            source: md.slice(ls, end),
+            inlines: buildInlines(child.children),
+          } satisfies ParagraphBlock,
+        );
         continue;
       }
       // それ以外の子要素（コードブロック、引用など）は依然として破棄する。
@@ -371,7 +377,7 @@ const fenceFor = (value: string): string => {
   return "`".repeat(Math.max(3, max + 1));
 };
 
-const codeBlockSource = (b: { lang: string; value: string }): string => {
+const codeBlockSource = (b: { lang: string; value: string; }): string => {
   const fence = fenceFor(b.value);
   return `${fence}${b.lang}\n${b.value}\n${fence}`;
 };

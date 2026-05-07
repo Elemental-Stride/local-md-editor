@@ -1,4 +1,4 @@
-import { context, build } from "esbuild";
+import { build, context } from "esbuild";
 
 const watch = process.argv.includes("--watch");
 

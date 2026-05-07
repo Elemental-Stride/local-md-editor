@@ -96,9 +96,7 @@ export const SLASH_ITEMS: SlashItem[] = [
 export const filterItems = (filter: string): SlashItem[] => {
   if (filter === "") return SLASH_ITEMS;
   const lower = filter.toLowerCase();
-  return SLASH_ITEMS.filter((item) =>
-    item.id.includes(lower) || item.label.includes(filter)
-  );
+  return SLASH_ITEMS.filter((item) => item.id.includes(lower) || item.label.includes(filter));
 };
 
 type Props = {

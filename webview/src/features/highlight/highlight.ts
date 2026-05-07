@@ -15,37 +15,234 @@ export type TokenType =
   | "tag"
   | "attribute";
 
-export type Token = { type: TokenType; value: string };
+export type Token = { type: TokenType; value: string; };
 
 type Pattern = [TokenType, RegExp];
 
 const sticky = (src: string, flags = ""): RegExp => new RegExp(src, flags + "y");
 
 const KW_JS = [
-  "var","let","const","function","class","extends","if","else","for","while","do",
-  "return","break","continue","switch","case","default","throw","try","catch","finally",
-  "new","delete","typeof","instanceof","in","of","this","super","import","export","from",
-  "as","async","await","yield","void",
+  "var",
+  "let",
+  "const",
+  "function",
+  "class",
+  "extends",
+  "if",
+  "else",
+  "for",
+  "while",
+  "do",
+  "return",
+  "break",
+  "continue",
+  "switch",
+  "case",
+  "default",
+  "throw",
+  "try",
+  "catch",
+  "finally",
+  "new",
+  "delete",
+  "typeof",
+  "instanceof",
+  "in",
+  "of",
+  "this",
+  "super",
+  "import",
+  "export",
+  "from",
+  "as",
+  "async",
+  "await",
+  "yield",
+  "void",
 ];
 const KW_TS = [
   ...KW_JS,
-  "type","interface","enum","public","private","protected","readonly","implements",
-  "namespace","declare","satisfies","abstract","keyof","infer","never","unknown","any",
-  "is","module","global",
+  "type",
+  "interface",
+  "enum",
+  "public",
+  "private",
+  "protected",
+  "readonly",
+  "implements",
+  "namespace",
+  "declare",
+  "satisfies",
+  "abstract",
+  "keyof",
+  "infer",
+  "never",
+  "unknown",
+  "any",
+  "is",
+  "module",
+  "global",
 ];
-const BI_JS = ["true","false","null","undefined","console","window","document","Math","JSON","Object","Array","String","Number","Boolean","Promise","Map","Set"];
+const BI_JS = [
+  "true",
+  "false",
+  "null",
+  "undefined",
+  "console",
+  "window",
+  "document",
+  "Math",
+  "JSON",
+  "Object",
+  "Array",
+  "String",
+  "Number",
+  "Boolean",
+  "Promise",
+  "Map",
+  "Set",
+];
 
 const KW_PY = [
-  "False","None","True","and","as","assert","async","await","break","class","continue",
-  "def","del","elif","else","except","finally","for","from","global","if","import","in",
-  "is","lambda","nonlocal","not","or","pass","raise","return","try","while","with","yield",
+  "False",
+  "None",
+  "True",
+  "and",
+  "as",
+  "assert",
+  "async",
+  "await",
+  "break",
+  "class",
+  "continue",
+  "def",
+  "del",
+  "elif",
+  "else",
+  "except",
+  "finally",
+  "for",
+  "from",
+  "global",
+  "if",
+  "import",
+  "in",
+  "is",
+  "lambda",
+  "nonlocal",
+  "not",
+  "or",
+  "pass",
+  "raise",
+  "return",
+  "try",
+  "while",
+  "with",
+  "yield",
 ];
-const BI_PY = ["self","print","len","range","int","str","float","list","dict","set","tuple","bool","None","True","False"];
+const BI_PY = [
+  "self",
+  "print",
+  "len",
+  "range",
+  "int",
+  "str",
+  "float",
+  "list",
+  "dict",
+  "set",
+  "tuple",
+  "bool",
+  "None",
+  "True",
+  "False",
+];
 
-const KW_SH = ["if","then","else","elif","fi","for","in","do","done","while","case","esac","function","return","break","continue","export","source","local","alias","unset","read"];
-const BI_SH = ["echo","cd","ls","pwd","mkdir","rm","cp","mv","cat","grep","sed","awk","find","curl","git","npm","pnpm","node","python","python3"];
+const KW_SH = [
+  "if",
+  "then",
+  "else",
+  "elif",
+  "fi",
+  "for",
+  "in",
+  "do",
+  "done",
+  "while",
+  "case",
+  "esac",
+  "function",
+  "return",
+  "break",
+  "continue",
+  "export",
+  "source",
+  "local",
+  "alias",
+  "unset",
+  "read",
+];
+const BI_SH = [
+  "echo",
+  "cd",
+  "ls",
+  "pwd",
+  "mkdir",
+  "rm",
+  "cp",
+  "mv",
+  "cat",
+  "grep",
+  "sed",
+  "awk",
+  "find",
+  "curl",
+  "git",
+  "npm",
+  "pnpm",
+  "node",
+  "python",
+  "python3",
+];
 
-const KW_SQL = ["SELECT","FROM","WHERE","INSERT","INTO","VALUES","UPDATE","SET","DELETE","CREATE","TABLE","DROP","ALTER","JOIN","LEFT","RIGHT","INNER","OUTER","ON","AS","AND","OR","NOT","NULL","IS","IN","BETWEEN","LIKE","GROUP","BY","ORDER","HAVING","LIMIT","OFFSET","UNION","DISTINCT"];
+const KW_SQL = [
+  "SELECT",
+  "FROM",
+  "WHERE",
+  "INSERT",
+  "INTO",
+  "VALUES",
+  "UPDATE",
+  "SET",
+  "DELETE",
+  "CREATE",
+  "TABLE",
+  "DROP",
+  "ALTER",
+  "JOIN",
+  "LEFT",
+  "RIGHT",
+  "INNER",
+  "OUTER",
+  "ON",
+  "AS",
+  "AND",
+  "OR",
+  "NOT",
+  "NULL",
+  "IS",
+  "IN",
+  "BETWEEN",
+  "LIKE",
+  "GROUP",
+  "BY",
+  "ORDER",
+  "HAVING",
+  "LIMIT",
+  "OFFSET",
+  "UNION",
+  "DISTINCT",
+];
 
 const wordRe = (words: string[]): RegExp => sticky(`(?:${words.join("|")})\\b`);
 
@@ -55,7 +252,10 @@ const COMMON_JS_TS: Pattern[] = [
   ["string", sticky(`"(?:\\\\.|[^"\\\\\\n])*"`)],
   ["string", sticky(`'(?:\\\\.|[^'\\\\\\n])*'`)],
   ["string", sticky(`\`(?:\\\\.|[^\`\\\\])*\``)],
-  ["number", sticky(`0[xX][0-9a-fA-F_]+n?|0[bB][01_]+n?|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][+-]?\\d+)?n?`)],
+  [
+    "number",
+    sticky(`0[xX][0-9a-fA-F_]+n?|0[bB][01_]+n?|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][+-]?\\d+)?n?`),
+  ],
   ["function", sticky(`[A-Za-z_$][\\w$]*(?=\\s*\\()`)],
   ["punctuation", sticky(`[{}()\\[\\];,]`)],
 ];
@@ -131,7 +331,7 @@ const tokenizeWith = (code: string, patterns: Pattern[]): Token[] => {
   const out: Token[] = [];
   let i = 0;
   while (i < code.length) {
-    let matched: { type: TokenType; len: number } | null = null;
+    let matched: { type: TokenType; len: number; } | null = null;
     for (const [type, re] of patterns) {
       re.lastIndex = i;
       const m = re.exec(code);
@@ -263,11 +463,26 @@ const inlineMd = (line: string): Token[] => {
   while (i < line.length) {
     const rest = line.slice(i);
     let m = rest.match(/^`[^`\n]+`/);
-    if (m) { flush(); out.push({ type: "string", value: m[0] }); i += m[0].length; continue; }
+    if (m) {
+      flush();
+      out.push({ type: "string", value: m[0] });
+      i += m[0].length;
+      continue;
+    }
     m = rest.match(/^\*\*[^*\n]+\*\*/) ?? rest.match(/^__[^_\n]+__/);
-    if (m) { flush(); out.push({ type: "keyword", value: m[0] }); i += m[0].length; continue; }
+    if (m) {
+      flush();
+      out.push({ type: "keyword", value: m[0] });
+      i += m[0].length;
+      continue;
+    }
     m = rest.match(/^!?\[[^\]]*\]\([^)]*\)/);
-    if (m) { flush(); out.push({ type: "function", value: m[0] }); i += m[0].length; continue; }
+    if (m) {
+      flush();
+      out.push({ type: "function", value: m[0] });
+      i += m[0].length;
+      continue;
+    }
     buf += line[i];
     i++;
   }
@@ -341,7 +556,7 @@ export const TOKEN_CLASS: Record<TokenType, string> = {
 };
 
 // 言語ピッカーに並べる代表的な言語一覧。"" は「言語指定なし」。
-export const LANG_OPTIONS: { value: string; label: string }[] = [
+export const LANG_OPTIONS: { value: string; label: string; }[] = [
   { value: "", label: "プレーン" },
   { value: "js", label: "JavaScript" },
   { value: "ts", label: "TypeScript" },

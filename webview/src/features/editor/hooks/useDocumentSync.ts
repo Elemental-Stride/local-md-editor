@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import type { Document } from "@local-md-editor/shared";
+import { useEffect, useState } from "react";
 import { onMessage, post } from "../../../vscode.js";
 import type { BlockReconciliation } from "./useBlockReconciliation.js";
 

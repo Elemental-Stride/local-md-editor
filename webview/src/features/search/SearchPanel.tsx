@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import type { Block, BlockId, Document } from "@local-md-editor/shared";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type SearchMatch = {
   blockId: BlockId;
@@ -47,17 +47,27 @@ const replaceInBlock = (
     return { ...block, value: block.value.slice(0, start) + replacement + block.value.slice(end) };
   }
   if (block.kind === "table") {
-    return { ...block, source: block.source.slice(0, start) + replacement + block.source.slice(end) };
+    return {
+      ...block,
+      source: block.source.slice(0, start) + replacement + block.source.slice(end),
+    };
   }
   if ("source" in block) {
-    return { ...block, source: block.source.slice(0, start) + replacement + block.source.slice(end) } as Block;
+    return {
+      ...block,
+      source: block.source.slice(0, start) + replacement + block.source.slice(end),
+    } as Block;
   }
   return block;
 };
 
-const findAll = (text: string, query: string, caseSensitive: boolean): { start: number; end: number }[] => {
+const findAll = (
+  text: string,
+  query: string,
+  caseSensitive: boolean,
+): { start: number; end: number; }[] => {
   if (query === "") return [];
-  const out: { start: number; end: number }[] = [];
+  const out: { start: number; end: number; }[] = [];
   const haystack = caseSensitive ? text : text.toLowerCase();
   const needle = caseSensitive ? query : query.toLowerCase();
   let from = 0;
@@ -210,8 +220,20 @@ export const SearchPanel = (
           />
           大小区別
         </label>
-        <button type="button" onClick={prev} className="rounded px-2 py-1 opacity-80 hover:opacity-100">前へ</button>
-        <button type="button" onClick={next} className="rounded px-2 py-1 opacity-80 hover:opacity-100">次へ</button>
+        <button
+          type="button"
+          onClick={prev}
+          className="rounded px-2 py-1 opacity-80 hover:opacity-100"
+        >
+          前へ
+        </button>
+        <button
+          type="button"
+          onClick={next}
+          className="rounded px-2 py-1 opacity-80 hover:opacity-100"
+        >
+          次へ
+        </button>
         <button
           type="button"
           onClick={() => setShowReplace((v) => !v)}

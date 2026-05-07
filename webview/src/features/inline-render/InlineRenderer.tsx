@@ -1,12 +1,12 @@
-import { Fragment, type ReactNode } from "react";
 import type { InlineToken } from "@local-md-editor/shared";
-import { post } from "../../vscode.js";
+import { Fragment, type ReactNode } from "react";
 import { classifyUrl, useResolvedUri } from "../../resources.js";
+import { post } from "../../vscode.js";
 
 export const renderInlines = (tokens: InlineToken[]): ReactNode =>
   tokens.map((t, i) => <InlineNode key={i} token={t} />);
 
-const InlineNode = ({ token }: { token: InlineToken }): JSX.Element => {
+const InlineNode = ({ token }: { token: InlineToken; }): JSX.Element => {
   switch (token.type) {
     case "text":
       return <Fragment>{token.value}</Fragment>;
@@ -42,7 +42,7 @@ const InlineNode = ({ token }: { token: InlineToken }): JSX.Element => {
   }
 };
 
-type ImageProps = { url: string; alt: string; title?: string };
+type ImageProps = { url: string; alt: string; title?: string; };
 
 const ImageInline = ({ url, alt, title }: ImageProps): JSX.Element => {
   const cls = classifyUrl(url);

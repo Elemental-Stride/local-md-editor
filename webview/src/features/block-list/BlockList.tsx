@@ -1,5 +1,5 @@
-import { useState, type DragEvent } from "react";
 import type { Block, BlockId, Document } from "@local-md-editor/shared";
+import { type DragEvent, useState } from "react";
 import type { FocusIntent } from "../../types/document.js";
 import { BlockView } from "../block/index.js";
 
@@ -36,7 +36,7 @@ export const BlockList = (
     currentMatchId,
   }: Props,
 ): JSX.Element => {
-  const [dropAt, setDropAt] = useState<{ id: BlockId; pos: "before" | "after" } | null>(null);
+  const [dropAt, setDropAt] = useState<{ id: BlockId; pos: "before" | "after"; } | null>(null);
   const [dragId, setDragId] = useState<BlockId | null>(null);
 
   const updateBlock = (next: Block): void => {
@@ -58,8 +58,7 @@ export const BlockList = (
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     const rect = e.currentTarget.getBoundingClientRect();
-    const pos: "before" | "after" =
-      e.clientY < rect.top + rect.height / 2 ? "before" : "after";
+    const pos: "before" | "after" = e.clientY < rect.top + rect.height / 2 ? "before" : "after";
     setDropAt((prev) => (prev?.id === id && prev.pos === pos ? prev : { id, pos }));
   };
 

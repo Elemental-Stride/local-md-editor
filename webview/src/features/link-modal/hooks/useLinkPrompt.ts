@@ -1,5 +1,5 @@
-import { type RefObject, useState } from "react";
 import type { Block } from "@local-md-editor/shared";
+import { type RefObject, useState } from "react";
 import { contentOf, reclassify, withDisplayValue } from "../../block/blockTransforms.js";
 import type { LinkPromptController, LinkPromptState } from "../types/types.js";
 
