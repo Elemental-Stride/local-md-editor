@@ -32,6 +32,15 @@ export const useGlobalShortcuts = (
         return;
       }
       if (key === "z") {
+        // IME 変換中は document の undo / ネイティブ undo どちらも誤動作の
+        // もとになる（変換途中の状態を巻き戻すと残骸が確定時に注入される
+        // 事故が起きやすい）。明示的に no-op にして、ユーザに変換確定を
+        // 先に行ってもらう運用に寄せる。
+        if (e.isComposing) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return;
+        }
         // 検索パネル / コマンドパレット入力中はネイティブ undo を尊重する。
         if (isInOverlayInput(e.target)) return;
         // textarea のネイティブ undo を確実に止めるため preventDefault に
@@ -46,6 +55,13 @@ export const useGlobalShortcuts = (
         return;
       }
       if (key === "y") {
+        // Cmd+Z と同様に、IME 変換中は redo を発火しない（変換状態を破壊
+        // しないため）。
+        if (e.isComposing) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return;
+        }
         if (isInOverlayInput(e.target)) return;
         e.preventDefault();
         e.stopImmediatePropagation();
