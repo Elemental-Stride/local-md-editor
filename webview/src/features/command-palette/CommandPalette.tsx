@@ -152,6 +152,7 @@ export const CommandPalette = (
 
   return (
     <div
+      data-overlay-input
       className="fixed left-1/2 top-20 z-30 w-[28rem] -translate-x-1/2 rounded border shadow-lg"
       style={{
         background: "var(--vscode-editorWidget-background)",

@@ -179,6 +179,7 @@ export const SearchPanel = (
 
   return (
     <div
+      data-overlay-input
       className="fixed right-4 top-4 z-30 w-80 rounded border p-2 text-xs shadow-lg"
       style={{
         background: "var(--vscode-editorWidget-background)",

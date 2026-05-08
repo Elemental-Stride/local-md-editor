@@ -17,12 +17,20 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
     );
   }
 
+  // 同一ドキュメントに対して resolveCustomTextEditor が重複呼び出しされた
+  // 場合に古い session を確実に破棄するためのレジストリ。これを忘れると
+  // onDidChangeTextDocument の listener が二重登録され、自前 edit の change
+  // event が 2 回発火して 2 つ目が `external` として誤検出される。
+  private readonly activeSessions = new Map<string, () => void>();
+
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   public async resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
   ): Promise<void> {
+    const uriKey = document.uri.toString();
+    this.activeSessions.get(uriKey)?.();
     const webview = webviewPanel.webview;
     const docDir = vscode.Uri.joinPath(document.uri, "..");
     const workspaceRoot = vscode.workspace.getWorkspaceFolder(document.uri)?.uri;
@@ -41,21 +49,53 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       void webview.postMessage(msg);
     };
 
-    let updatingFromWebview = false;
+    // 自前 applyEdit による change event を抑制するため、これから書き込む
+    // テキスト内容を multiset で保持しておく。version ベースだと
+    // onDidReceiveMessage の async ハンドラが並行に走って version の予測が
+    // 衝突するケースがあるため、テキスト内容で相関させる方式にしている。
+    const pendingTexts = new Map<string, number>();
+    const incPending = (text: string): void => {
+      pendingTexts.set(text, (pendingTexts.get(text) ?? 0) + 1);
+    };
+    const consumePending = (text: string): boolean => {
+      const count = pendingTexts.get(text);
+      if (count === undefined) return false;
+      if (count <= 1) pendingTexts.delete(text);
+      else pendingTexts.set(text, count - 1);
+      return true;
+    };
 
     const sendInit = (): void => {
       post({ type: "init", document: markdownToDocument(document.getText()) });
     };
 
+    // 同じ change event が複数 listener / 内部経路から二重発火されるケースを
+    // 観測している。version + text の組がさっき処理したものと同じなら no-op。
+    let lastSeenChange: { version: number; text: string; } | null = null;
+
     const docChange = vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.uri.toString() !== document.uri.toString()) return;
-      if (updatingFromWebview) return;
-      post({ type: "update", document: markdownToDocument(document.getText()) });
+      const text = e.document.getText();
+      const version = e.document.version;
+      if (
+        lastSeenChange !== null
+        && lastSeenChange.version === version
+        && lastSeenChange.text === text
+      ) {
+        return;
+      }
+      lastSeenChange = { version, text };
+      if (consumePending(text)) return;
+      post({
+        type: "update",
+        document: markdownToDocument(text),
+        reason: "external",
+      });
     });
 
     const persist = async (next: string): Promise<void> => {
       if (next === document.getText()) return;
-      updatingFromWebview = true;
+      incPending(next);
       try {
         const edit = new vscode.WorkspaceEdit();
         edit.replace(
@@ -63,9 +103,12 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           new vscode.Range(0, 0, document.lineCount, 0),
           next,
         );
-        await vscode.workspace.applyEdit(edit);
-      } finally {
-        updatingFromWebview = false;
+        const ok = await vscode.workspace.applyEdit(edit);
+        // 失敗時は change event が来ないので予約をキャンセル
+        if (!ok) consumePending(next);
+      } catch (e) {
+        consumePending(next);
+        throw e;
       }
     };
 
@@ -85,7 +128,11 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           // 正しく見られるようにするため（単一ブロックを単独パースさせない）。
           const next = documentToMarkdown(raw.document);
           await persist(next);
-          post({ type: "update", document: markdownToDocument(next) });
+          post({
+            type: "update",
+            document: markdownToDocument(next),
+            reason: "commit-echo",
+          });
           return;
         }
         case "openLink": {
@@ -105,9 +152,20 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       }
     });
 
-    webviewPanel.onDidDispose(() => {
+    const dispose = (): void => {
       docChange.dispose();
       msgSub.dispose();
+      pendingTexts.clear();
+    };
+    this.activeSessions.set(uriKey, dispose);
+
+    webviewPanel.onDidDispose(() => {
+      dispose();
+      // 自分が現在の session であれば登録解除（後勝ちの再 resolve では
+      // 既に上書きされているケースがあるので一致確認してから消す）。
+      if (this.activeSessions.get(uriKey) === dispose) {
+        this.activeSessions.delete(uriKey);
+      }
     });
   }
 

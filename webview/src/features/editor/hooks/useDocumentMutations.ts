@@ -1,13 +1,17 @@
 import type { Block, BlockId, Document, ParagraphBlock } from "@local-md-editor/shared";
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { FocusIntent } from "../../../types/document.js";
 import { post } from "../../../vscode.js";
 import type { BlockBuilders } from "./useBlockBuilders.js";
+import type { DocumentHistory } from "./useDocumentHistory.js";
 
 type Args = {
   setDoc: Dispatch<SetStateAction<Document | null>>;
   setFocus: Dispatch<SetStateAction<FocusIntent | null>>;
   builders: BlockBuilders;
+  history: DocumentHistory;
+  docRef: MutableRefObject<Document | null>;
+  focusRef: MutableRefObject<FocusIntent | null>;
 };
 
 type DocumentMutations = {
@@ -25,10 +29,21 @@ type DocumentMutations = {
 // ドキュメント本体を変更する handler 群。state そのものは useDocumentSync が
 // 所有しており、ここでは setDoc を借りて操作する。`edit` は逐次反映で、
 // `commit` はファイル保存と再パースのトリガ。
+// 各 mutation はミューテーション直前に history.recordCheckpoint を呼ぶ。
+// kind=soft はテキスト連続入力のコアレッシング対象、hard は構造変更で必ず
+// 1 ステップとして積む。
 export const useDocumentMutations = (
-  { setDoc, setFocus, builders }: Args,
+  { setDoc, setFocus, builders, history, docRef, focusRef }: Args,
 ): DocumentMutations => {
   const handleChange = (next: Document): void => {
+    const prev = docRef.current;
+    if (prev) {
+      // 空白文字を入力した直後は word boundary とみなして hard で境界を作る
+      // （VS Code の typing-history と同じ感覚）。それ以外は soft で連続入力を
+      // ひとまとまりに coalesce する。
+      const kind = appendedWhitespace(prev, next) ? "hard" : "soft";
+      history.recordCheckpoint(prev, focusRef.current, kind);
+    }
     setDoc(next);
     post({ type: "edit", document: next });
   };
@@ -41,8 +56,10 @@ export const useDocumentMutations = (
   };
 
   const insertAfter = (current: Block): void => {
-    setDoc((prev) => {
-      if (!prev) return prev;
+    const prev = docRef.current;
+    if (!prev) return;
+    history.recordCheckpoint(prev, focusRef.current, "hard");
+    setDoc(() => {
       const idx = prev.blocks.findIndex((b) => b.id === current.id);
       if (idx === -1) return prev;
       const sibling = builders.createSiblingWithContent(current, "");
@@ -60,8 +77,10 @@ export const useDocumentMutations = (
   };
 
   const splitBlock = (current: Block, before: string, after: string): void => {
-    setDoc((prev) => {
-      if (!prev) return prev;
+    const prev = docRef.current;
+    if (!prev) return;
+    history.recordCheckpoint(prev, focusRef.current, "hard");
+    setDoc(() => {
       const idx = prev.blocks.findIndex((b) => b.id === current.id);
       if (idx === -1) return prev;
 
@@ -123,8 +142,10 @@ export const useDocumentMutations = (
   };
 
   const deleteAndFocusPrev = (blockId: BlockId): void => {
-    setDoc((prev) => {
-      if (!prev) return prev;
+    const prev = docRef.current;
+    if (!prev) return;
+    history.recordCheckpoint(prev, focusRef.current, "hard");
+    setDoc(() => {
       const idx = prev.blocks.findIndex((b) => b.id === blockId);
       if (idx === -1) return prev;
       const next: Document = {
@@ -142,8 +163,10 @@ export const useDocumentMutations = (
     where: "before" | "after",
   ): void => {
     if (sourceId === targetId) return;
-    setDoc((prev) => {
-      if (!prev) return prev;
+    const prev = docRef.current;
+    if (!prev) return;
+    history.recordCheckpoint(prev, focusRef.current, "hard");
+    setDoc(() => {
       const blocks = [...prev.blocks];
       const srcIdx = blocks.findIndex((b) => b.id === sourceId);
       if (srcIdx === -1) return prev;
@@ -162,6 +185,8 @@ export const useDocumentMutations = (
   };
 
   const startWriting = (): void => {
+    const prev = docRef.current;
+    if (prev) history.recordCheckpoint(prev, focusRef.current, "hard");
     const newBlock = builders.emptyParagraph();
     const next: Document = { blocks: [newBlock] };
     setFocus({ id: newBlock.id, cursor: "end" });
@@ -170,11 +195,15 @@ export const useDocumentMutations = (
   };
 
   const applySearchReplacement = (next: Document): void => {
+    const prev = docRef.current;
+    if (prev) history.recordCheckpoint(prev, focusRef.current, "hard");
     setDoc(next);
     post({ type: "commit", document: next });
   };
 
   const applyPaletteCommand = (next: Document, nextFocus?: FocusIntent): void => {
+    const prev = docRef.current;
+    if (prev) history.recordCheckpoint(prev, focusRef.current, "hard");
     setDoc(next);
     if (nextFocus) setFocus(nextFocus);
     post({ type: "commit", document: next });
@@ -191,4 +220,22 @@ export const useDocumentMutations = (
     applySearchReplacement,
     applyPaletteCommand,
   };
+};
+
+// prev → next で「最初に source が変わった block」に注目し、長さが伸び、かつ
+// 末尾に追記された 1 文字以上の中に空白文字が含まれていたら true を返す。
+// undo の粒度を「単語」スケールにするための word-boundary 検出に使う。
+// 中央挿入や貼り付けなど、末尾追記でないケースは false 扱い（coalesce 継続）。
+const appendedWhitespace = (prev: Document, next: Document): boolean => {
+  const len = Math.min(prev.blocks.length, next.blocks.length);
+  for (let i = 0; i < len; i++) {
+    const p = prev.blocks[i];
+    const n = next.blocks[i];
+    if (!("source" in p) || !("source" in n)) continue;
+    if (p.source === n.source) continue;
+    if (n.source.length <= p.source.length) return false;
+    if (!n.source.startsWith(p.source)) return false;
+    return /\s/.test(n.source.slice(p.source.length));
+  }
+  return false;
 };
