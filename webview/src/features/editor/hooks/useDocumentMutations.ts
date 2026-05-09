@@ -24,7 +24,7 @@ type DocumentMutations = {
   reorder: (sourceId: BlockId, targetId: BlockId, where: "before" | "after") => void;
   startWriting: () => void;
   applySearchReplacement: (next: Document) => void;
-  applyPaletteCommand: (next: Document, nextFocus?: FocusIntent) => void;
+  applyBlockCommand: (next: Document, nextFocus?: FocusIntent) => void;
 };
 
 // ドキュメント本体を変更する handler 群。state そのものは useDocumentSync が
@@ -225,7 +225,7 @@ export const useDocumentMutations = (
     post({ type: "commit", document: next });
   };
 
-  const applyPaletteCommand = (next: Document, nextFocus?: FocusIntent): void => {
+  const applyBlockCommand = (next: Document, nextFocus?: FocusIntent): void => {
     const prev = docRef.current;
     if (prev) history.recordCheckpoint(prev, focusRef.current, "hard");
     setDoc(next);
@@ -243,7 +243,7 @@ export const useDocumentMutations = (
     reorder,
     startWriting,
     applySearchReplacement,
-    applyPaletteCommand,
+    applyBlockCommand,
   };
 };
 
