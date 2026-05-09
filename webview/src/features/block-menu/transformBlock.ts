@@ -40,7 +40,15 @@ export const transformBlock = (b: Block, kind: TransformKind): Block => {
     case "code":
       return { id, kind: "code", lang: "", value: text, source: text };
     case "quote":
-      return { id, kind: "blockquote", source: `> ${text}` };
+      // 複数行テキスト (例: code/段落の改行入り) を quote 化する場合、各行に
+      // `> ` を付けないと markdown としては 1 行目だけが引用になり、続く行は
+      // 別の段落として扱われてしまう。withDisplayValue の blockquote と同じ
+      // 行ごと付与方式に揃える。
+      return {
+        id,
+        kind: "blockquote",
+        source: text.split("\n").map((line) => `> ${line}`).join("\n"),
+      };
     case "divider":
       return { id, kind: "thematicBreak", source: "---" };
   }

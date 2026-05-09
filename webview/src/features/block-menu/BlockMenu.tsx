@@ -1,11 +1,10 @@
-import type { Block, BlockId, Document } from "@local-md-editor/shared";
+import type { Block, Document } from "@local-md-editor/shared";
 import { useEffect, useRef } from "react";
+import type { FocusIntent } from "../../types/document.js";
+import { makeBlockId } from "../block/blockId.js";
 import { transformBlock, type TransformKind } from "./transformBlock.js";
 
-export type BlockMenuApply = (
-  next: Document,
-  focus?: { id: BlockId; cursor: "start" | "end"; },
-) => void;
+export type BlockMenuApply = (next: Document, focus?: FocusIntent) => void;
 
 type Props = {
   block: Block;
@@ -18,9 +17,6 @@ type Props = {
 
 type Action = { label: string; hint?: string; run: () => void; };
 type Section = { heading: string; actions: Action[]; };
-
-const newId = (): string =>
-  `wb${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
 // ブロック左の ⋮⋮ ハンドルクリックで開くポップオーバーメニュー。
 // kind 変換 (10 種) と move/duplicate/delete を 1 つのメニューに集約する。
@@ -96,7 +92,7 @@ export const BlockMenu = (
 
   const duplicate = (): void => {
     const orig = document.blocks[idx];
-    const copy = { ...orig, id: newId() } as Block;
+    const copy = { ...orig, id: makeBlockId() } as Block;
     const blocks = [...document.blocks];
     blocks.splice(idx + 1, 0, copy);
     onApply({ blocks }, { id: copy.id, cursor: "end" });
@@ -145,6 +141,8 @@ export const BlockMenu = (
   return (
     <div
       ref={menuRef}
+      role="menu"
+      aria-label="ブロック操作メニュー"
       className="fixed z-30 min-w-[12rem] max-h-[80vh] overflow-y-auto overscroll-contain rounded border py-1 text-sm shadow-lg"
       style={{
         top: anchorRect.bottom + 4,

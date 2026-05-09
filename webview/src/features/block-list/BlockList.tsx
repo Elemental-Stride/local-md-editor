@@ -128,6 +128,9 @@ export const BlockList = (
               type="button"
               draggable
               data-block-handle
+              aria-label="ブロックメニューを開く"
+              aria-haspopup="menu"
+              aria-expanded={menu?.id === block.id}
               onDragStart={(e) => handleDragStart(e, block.id)}
               onClick={(e) => {
                 // ハンドル再クリック時はトグルで閉じる。BlockMenu 側の外部

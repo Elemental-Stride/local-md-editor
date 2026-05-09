@@ -1,7 +1,5 @@
 import type { Block, BlockId, ParagraphBlock } from "@local-md-editor/shared";
-
-const makeBlockId = (): BlockId =>
-  `wb${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+import { makeBlockId } from "../../block/blockId.js";
 
 const emptyParagraph = (): ParagraphBlock => ({
   id: makeBlockId(),

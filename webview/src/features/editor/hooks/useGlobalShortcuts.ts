@@ -13,8 +13,9 @@ type Args = {
 // Cmd+P / Cmd+Shift+P は VS Code 標準 (quickOpen / showCommands) を
 // 尊重するためここでは拾わない（webview の preventDefault では VS Code の
 // keybinding を抑制できず二重発火になる）。
-// 検索パネルやコマンドパレットの input/textarea にフォーカスがある場合は
-// document 側の undo/redo は発火させず、ネイティブの input 内 undo に委ねる。
+// オーバーレイ系 input (検索パネルなど `[data-overlay-input]` 配下) に
+// フォーカスがある場合は document 側の undo/redo は発火させず、ネイティブの
+// input 内 undo に委ねる。
 export const useGlobalShortcuts = (
   { openSearch, moveActiveBlock, undo, redo }: Args,
 ): void => {
@@ -78,10 +79,10 @@ export const useGlobalShortcuts = (
   }, [openSearch, moveActiveBlock, undo, redo]);
 };
 
-// オーバーレイ（検索 / コマンドパレット）の input にフォーカスがあるかを
-// 判定する。これらの中では document 側 undo を起こさず、ブラウザの input
-// 単体 undo にフォールバックする方が自然。data 属性で webview のブロック
-// 編集 textarea と区別する。
+// オーバーレイ系 input (`[data-overlay-input]` 配下、検索パネルなど) に
+// フォーカスがあるかを判定する。これらの中では document 側 undo を起こさず、
+// ブラウザの input 単体 undo にフォールバックする方が自然。data 属性で
+// webview のブロック編集 textarea と区別する。
 const isInOverlayInput = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) return false;
   if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") return false;
