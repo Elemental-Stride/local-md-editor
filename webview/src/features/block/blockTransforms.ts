@@ -21,6 +21,10 @@ export const contentOf = (block: Block): string => {
       const m = block.source.match(/^\s*[-*+] \[[ xX]\] /);
       return m ? block.source.slice(m[0].length) : block.source;
     }
+    case "blockquote":
+      // 各行の `> ` または `>` 接頭を取り除く（空行は `>` のみのこともある）。
+      // 多行引用の表示テキストに対応するため /m フラグで行頭マッチさせる。
+      return block.source.replace(/^>[ \t]?/gm, "");
     case "code":
     case "table":
       return "";
@@ -53,6 +57,10 @@ export const withDisplayValue = (block: Block, display: string): string => {
       const marker = m?.[1] ?? "-";
       return `${indent}${marker} [${block.checked ? "x" : " "}] ${display}`;
     }
+    case "blockquote":
+      // 各行に `> ` を付け直す。display 内の改行を多行引用として保つため
+      // 行ごとに分割して再構成する。空行は `> ` (末尾スペースあり) で出力する。
+      return display.split("\n").map((line) => `> ${line}`).join("\n");
     case "code":
     case "table":
       return display;
@@ -75,6 +83,12 @@ export const reclassify = (current: Block, source: string): Block => {
   ) {
     if (current.kind === "code" || current.kind === "table") return current;
     return { ...current, source } as Block;
+  }
+
+  // 行頭 `> ` (or タブ) で blockquote へ昇格。markdown 仕様では `>` 単体でも
+  // 引用だが、`# `/`- ` 等と同様に空白を要求して誤発火を抑える。
+  if (/^>[ \t]/.test(source)) {
+    return { id: current.id, kind: "blockquote", source };
   }
 
   const headingMatch = source.match(/^(#{1,6}) /);

@@ -116,7 +116,8 @@ export const useBlockKeyHandler = (
       const markered = block.kind === "heading"
         || block.kind === "bulletItem"
         || block.kind === "orderedItem"
-        || block.kind === "taskItem";
+        || block.kind === "taskItem"
+        || block.kind === "blockquote";
       // マーカー行の先頭で Backspace を押すと、見出し / リストを段落に
       // 戻す（Notion 的な挙動）。
       if (markered && ta.selectionStart === 0 && ta.selectionEnd === 0) {
