@@ -37,6 +37,22 @@ describe("parseInlines", () => {
     });
   });
 
+  describe("ハード改行", () => {
+    test("末尾 2 スペース + 改行を break トークンとして認識できる", () => {
+      expect(parseInlines("a  \nb")).toEqual([
+        { type: "text", value: "a" },
+        { type: "break" },
+        { type: "text", value: "b" },
+      ]);
+    });
+
+    test("画像を image トークンとして認識できる", () => {
+      expect(parseInlines("![alt](u.png)")).toEqual([
+        { type: "image", url: "u.png", alt: "alt" },
+      ]);
+    });
+  });
+
   describe("フォールバック", () => {
     test("閉じていないマーカーを素のテキストとして扱える", () => {
       expect(parseInlines("a `unclosed code")).toEqual([
