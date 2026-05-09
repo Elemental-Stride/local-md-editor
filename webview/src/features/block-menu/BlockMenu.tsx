@@ -24,7 +24,7 @@ const newId = (): string =>
 
 // ブロック左の ⋮⋮ ハンドルクリックで開くポップオーバーメニュー。
 // kind 変換 (10 種) と move/duplicate/delete を 1 つのメニューに集約する。
-// 閉じる契機: メニュー外 mousedown / Esc / 項目クリック / スクロール。
+// 閉じる契機: メニュー外 mousedown / メニュー外スクロール / Esc / 項目クリック。
 // ハンドル自身を再クリックした場合の close→reopen を避けるため、ハンドルには
 // `[data-block-handle]` を付け、外部 mousedown 判定でそれを除外している。
 export const BlockMenu = (
@@ -49,8 +49,15 @@ export const BlockMenu = (
         onClose();
       }
     };
-    // スクロール時はアンカー座標が古くなるので閉じる（Notion 等と同じ挙動）。
-    const handleScroll = (): void => onClose();
+    // メニュー外でのスクロール時のみ閉じる。メニュー自身が内部スクロールする
+    // ケース (overflow-y-auto) では target がメニュー要素になるので除外する。
+    // capture フェーズで拾うのは、scroll はバブルしないため bubble だと
+    // ネストした scrollable コンテナの scroll を捕えられないため。
+    const handleScroll = (e: Event): void => {
+      const target = e.target as Node | null;
+      if (target && menuRef.current?.contains(target)) return;
+      onClose();
+    };
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("keydown", handleKey);
     window.addEventListener("scroll", handleScroll, true);
@@ -138,7 +145,7 @@ export const BlockMenu = (
   return (
     <div
       ref={menuRef}
-      className="fixed z-30 min-w-[12rem] rounded border py-1 text-sm shadow-lg"
+      className="fixed z-30 min-w-[12rem] max-h-[80vh] overflow-y-auto overscroll-contain rounded border py-1 text-sm shadow-lg"
       style={{
         top: anchorRect.bottom + 4,
         left: anchorRect.left,
