@@ -20,10 +20,11 @@ type DocumentMutations = {
   insertAfter: (current: Block) => void;
   splitBlock: (current: Block, before: string, after: string) => void;
   deleteAndFocusPrev: (blockId: BlockId) => void;
+  deleteBlocks: (ids: ReadonlySet<BlockId>) => void;
   reorder: (sourceId: BlockId, targetId: BlockId, where: "before" | "after") => void;
   startWriting: () => void;
   applySearchReplacement: (next: Document) => void;
-  applyPaletteCommand: (next: Document, nextFocus?: FocusIntent) => void;
+  applyBlockCommand: (next: Document, nextFocus?: FocusIntent) => void;
 };
 
 // ドキュメント本体を変更する handler 群。state そのものは useDocumentSync が
@@ -157,6 +158,29 @@ export const useDocumentMutations = (
     });
   };
 
+  // 非編集モード時の DOM 範囲選択 (Cmd+A など) からの一括削除。残りが空に
+  // なったら空段落 1 個を作って `startWriting` 同等の状態に戻す。これがないと
+  // doc.blocks が空になり、ユーザは「クリックして書き始める…」ボタンを
+  // 経由しないと再入力できない。
+  const deleteBlocks = (ids: ReadonlySet<BlockId>): void => {
+    const prev = docRef.current;
+    if (!prev || ids.size === 0) return;
+    history.recordCheckpoint(prev, focusRef.current, "hard");
+    const remaining = prev.blocks.filter((b) => !ids.has(b.id));
+    if (remaining.length === 0) {
+      const newBlock = builders.emptyParagraph();
+      const next: Document = { blocks: [newBlock] };
+      setFocus({ id: newBlock.id, cursor: "end" });
+      setDoc(next);
+      post({ type: "edit", document: next });
+      return;
+    }
+    const next: Document = { blocks: remaining };
+    setFocus(null);
+    setDoc(next);
+    post({ type: "edit", document: next });
+  };
+
   const reorder = (
     sourceId: BlockId,
     targetId: BlockId,
@@ -201,7 +225,7 @@ export const useDocumentMutations = (
     post({ type: "commit", document: next });
   };
 
-  const applyPaletteCommand = (next: Document, nextFocus?: FocusIntent): void => {
+  const applyBlockCommand = (next: Document, nextFocus?: FocusIntent): void => {
     const prev = docRef.current;
     if (prev) history.recordCheckpoint(prev, focusRef.current, "hard");
     setDoc(next);
@@ -215,10 +239,11 @@ export const useDocumentMutations = (
     insertAfter,
     splitBlock,
     deleteAndFocusPrev,
+    deleteBlocks,
     reorder,
     startWriting,
     applySearchReplacement,
-    applyPaletteCommand,
+    applyBlockCommand,
   };
 };
 

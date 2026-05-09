@@ -122,6 +122,18 @@ export const BlockEditor = (
     );
   }
 
+  if (block.kind === "blockquote") {
+    return (
+      <div
+        className={`relative border-l-4 border-current/30 pl-3 italic ${highlight}`}
+      >
+        {editor}
+        {slashMenuEl}
+        {linkPromptEl}
+      </div>
+    );
+  }
+
   return (
     <div className={`relative ${highlight}`}>
       {editor}

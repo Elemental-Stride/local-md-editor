@@ -1,6 +1,7 @@
 import type { Block, BlockId, Document } from "@local-md-editor/shared";
 import { type DragEvent, useState } from "react";
 import type { FocusIntent } from "../../types/document.js";
+import { BlockMenu, type BlockMenuApply } from "../block-menu/index.js";
 import { BlockView } from "../block/index.js";
 
 type Props = {
@@ -14,9 +15,13 @@ type Props = {
   onReorder: (sourceId: BlockId, targetId: BlockId, where: "before" | "after") => void;
   onNavigateOut: (blockId: BlockId, dir: "up" | "down") => void;
   onFocus: (blockId: BlockId) => void;
+  // ハンドル経由のブロック操作（kind 変換 / move / duplicate / delete）の適用先。
+  onApplyBlockCommand: BlockMenuApply;
   searchMatches: Set<BlockId>;
   currentMatchId: BlockId | null;
 };
+
+type MenuState = { id: BlockId; anchorRect: DOMRect; };
 
 const DRAG_MIME = "application/x-local-md-editor-block";
 
@@ -32,12 +37,15 @@ export const BlockList = (
     onReorder,
     onNavigateOut,
     onFocus,
+    onApplyBlockCommand,
     searchMatches,
     currentMatchId,
   }: Props,
 ): JSX.Element => {
   const [dropAt, setDropAt] = useState<{ id: BlockId; pos: "before" | "after"; } | null>(null);
   const [dragId, setDragId] = useState<BlockId | null>(null);
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const menuBlock = menu ? document.blocks.find((b) => b.id === menu.id) ?? null : null;
 
   const updateBlock = (next: Block): void => {
     onChange({
@@ -83,6 +91,15 @@ export const BlockList = (
         setDragId(null);
       }}
     >
+      {menu && menuBlock && (
+        <BlockMenu
+          block={menuBlock}
+          document={document}
+          anchorRect={menu.anchorRect}
+          onApply={onApplyBlockCommand}
+          onClose={() => setMenu(null)}
+        />
+      )}
       {document.blocks.map((block) => {
         const showBefore = dropAt?.id === block.id && dropAt.pos === "before";
         const showAfter = dropAt?.id === block.id && dropAt.pos === "after";
@@ -107,15 +124,31 @@ export const BlockList = (
                 style={{ background: "var(--vscode-focusBorder)" }}
               />
             )}
-            <span
+            <button
+              type="button"
               draggable
+              data-block-handle
+              aria-label="ブロックメニューを開く"
+              aria-haspopup="menu"
+              aria-expanded={menu?.id === block.id}
               onDragStart={(e) => handleDragStart(e, block.id)}
-              className="select-none pt-1 text-xs leading-none opacity-0 transition group-hover:opacity-50"
+              onClick={(e) => {
+                // ハンドル再クリック時はトグルで閉じる。BlockMenu 側の外部
+                // mousedown ハンドラはハンドル自身を除外するので、ここで
+                // toggle 判定して問題ない。
+                if (menu?.id === block.id) {
+                  setMenu(null);
+                  return;
+                }
+                const rect = e.currentTarget.getBoundingClientRect();
+                setMenu({ id: block.id, anchorRect: rect });
+              }}
+              className="select-none border-0 bg-transparent p-0 pt-1 text-xs leading-none opacity-0 transition group-hover:opacity-50"
               style={{ cursor: "grab" }}
-              title="ドラッグして並べ替え"
+              title="クリック: メニュー / ドラッグ: 並べ替え"
             >
               ⋮⋮
-            </span>
+            </button>
             <div className="min-w-0 flex-1">
               <BlockView
                 block={block}

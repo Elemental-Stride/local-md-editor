@@ -96,6 +96,14 @@ export const RenderedBlock = ({ block, onChange }: Props): JSX.Element => {
     }
     case "thematicBreak":
       return <hr className="my-2 opacity-30" />;
+    case "blockquote":
+      // RawBlock 系には inlines が無いので素のテキストを <blockquote> として
+      // 表示する。`> ` 接頭は contentOf で剥がしてから出す。
+      return (
+        <blockquote className="whitespace-pre-wrap border-l-4 border-current/30 pl-3 italic leading-relaxed opacity-80">
+          {contentOf(block)}
+        </blockquote>
+      );
     default:
       return (
         <pre className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed opacity-90">

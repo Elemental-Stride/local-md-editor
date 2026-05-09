@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { post } from "../../vscode.js";
 import { BlockList } from "../block-list/index.js";
-import { CommandPalette } from "../command-palette/index.js";
 import { SearchPanel } from "../search/index.js";
 import { useActiveBlock } from "./hooks/useActiveBlock.js";
 import { useBlockBuilders } from "./hooks/useBlockBuilders.js";
@@ -10,8 +9,9 @@ import { useDocumentHistory } from "./hooks/useDocumentHistory.js";
 import { useDocumentMutations } from "./hooks/useDocumentMutations.js";
 import { useDocumentNavigation } from "./hooks/useDocumentNavigation.js";
 import { useDocumentSync } from "./hooks/useDocumentSync.js";
+import { useDomSelectionDelete } from "./hooks/useDomSelectionDelete.js";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts.js";
-import { useSearchAndPalette } from "./hooks/useSearchAndPalette.js";
+import { useSearch } from "./hooks/useSearch.js";
 
 // エディタ全体のオーケストレーション。9 つの hook を配線し、状態を JSX に
 // 流すだけのトップレベルコンポーネント。状態を持たず、純粋に hook の合成。
@@ -32,8 +32,8 @@ export const Editor = (): JSX.Element => {
     docRef,
     focusRef,
   });
-  const { activeBlockId, setActiveBlockId, moveActiveBlock } = useActiveBlock({ setDoc });
-  const overlays = useSearchAndPalette();
+  const { setActiveBlockId, moveActiveBlock } = useActiveBlock({ setDoc });
+  const search = useSearch();
 
   // undo / redo は history に「現在の doc / focus」を渡して past/future を
   // 一段移動させ、戻ってきたエントリを setDoc / setFocus に流して `edit` で
@@ -60,12 +60,12 @@ export const Editor = (): JSX.Element => {
   }, [history, docRef, focusRef, setDoc, setFocus]);
 
   useGlobalShortcuts({
-    openSearch: overlays.openSearch,
-    openPalette: overlays.openPalette,
+    openSearch: search.openSearch,
     moveActiveBlock,
     undo,
     redo,
   });
+  useDomSelectionDelete({ deleteBlocks: mutations.deleteBlocks });
 
   if (!doc) {
     return <div className="p-6 opacity-60">Loading…</div>;
@@ -95,24 +95,17 @@ export const Editor = (): JSX.Element => {
             onReorder={mutations.reorder}
             onNavigateOut={navigateOut}
             onFocus={setActiveBlockId}
-            searchMatches={overlays.searchMatches}
-            currentMatchId={overlays.currentMatchId}
+            onApplyBlockCommand={mutations.applyBlockCommand}
+            searchMatches={search.searchMatches}
+            currentMatchId={search.currentMatchId}
           />
         )}
-      {overlays.searchOpen && (
+      {search.searchOpen && (
         <SearchPanel
           document={doc}
-          onClose={overlays.closeSearch}
-          onActiveMatchChanged={overlays.handleSearchChange}
+          onClose={search.closeSearch}
+          onActiveMatchChanged={search.handleSearchChange}
           onReplaceCommit={mutations.applySearchReplacement}
-        />
-      )}
-      {overlays.paletteOpen && (
-        <CommandPalette
-          document={doc}
-          activeBlockId={activeBlockId}
-          onApply={mutations.applyPaletteCommand}
-          onClose={overlays.closePalette}
         />
       )}
     </div>
