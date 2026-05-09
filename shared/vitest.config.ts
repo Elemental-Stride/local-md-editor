@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { CleanTreeReporter } from "../vitest.reporters.js";
+import { CleanTreeReporter } from "../vitest.reporters.ts";
 
 export default defineConfig({
   test: {
