@@ -2,19 +2,21 @@ import { useEffect } from "react";
 
 type Args = {
   openSearch: () => void;
-  openPalette: () => void;
   moveActiveBlock: (delta: -1 | 1) => void;
   undo: () => void;
   redo: () => void;
 };
 
-// グローバルなキーバインド: Cmd+F 検索 / Cmd+P コマンドパレット /
+// グローバルなキーバインド: Cmd+F 検索 /
 // Cmd+Shift+矢印 でアクティブブロックの上下移動 /
 // Cmd+Z で undo / Cmd+Shift+Z または Ctrl+Y で redo。
+// Cmd+P / Cmd+Shift+P は VS Code 標準 (quickOpen / showCommands) を
+// 尊重するためここでは拾わない（webview の preventDefault では VS Code の
+// keybinding を抑制できず二重発火になる）。
 // 検索パネルやコマンドパレットの input/textarea にフォーカスがある場合は
 // document 側の undo/redo は発火させず、ネイティブの input 内 undo に委ねる。
 export const useGlobalShortcuts = (
-  { openSearch, openPalette, moveActiveBlock, undo, redo }: Args,
+  { openSearch, moveActiveBlock, undo, redo }: Args,
 ): void => {
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
@@ -24,11 +26,6 @@ export const useGlobalShortcuts = (
       if (key === "f") {
         e.preventDefault();
         openSearch();
-        return;
-      }
-      if (key === "p") {
-        e.preventDefault();
-        openPalette();
         return;
       }
       if (key === "z") {
@@ -78,7 +75,7 @@ export const useGlobalShortcuts = (
     // しか走らず、ネイティブ undo を間に合わせで止めきれないケースがある。
     window.addEventListener("keydown", handler, { capture: true });
     return () => window.removeEventListener("keydown", handler, { capture: true });
-  }, [openSearch, openPalette, moveActiveBlock, undo, redo]);
+  }, [openSearch, moveActiveBlock, undo, redo]);
 };
 
 // オーバーレイ（検索 / コマンドパレット）の input にフォーカスがあるかを

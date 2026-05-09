@@ -62,7 +62,6 @@ export const Editor = (): JSX.Element => {
 
   useGlobalShortcuts({
     openSearch: overlays.openSearch,
-    openPalette: overlays.openPalette,
     moveActiveBlock,
     undo,
     redo,
