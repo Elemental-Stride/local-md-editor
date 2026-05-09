@@ -62,6 +62,32 @@ export default defineConfig({
           branches: 70,
           functions: 80,
         },
+        // webview の Phase 3 対象 (主要 hook 群)
+        "webview/src/features/editor/hooks/useBlockReconciliation.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/editor/hooks/useBlockBuilders.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/editor/hooks/useDocumentNavigation.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/editor/hooks/useDocumentMutations.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/editor/hooks/useDocumentSync.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
       },
     },
   },
