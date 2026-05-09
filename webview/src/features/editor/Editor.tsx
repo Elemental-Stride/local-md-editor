@@ -10,6 +10,7 @@ import { useDocumentHistory } from "./hooks/useDocumentHistory.js";
 import { useDocumentMutations } from "./hooks/useDocumentMutations.js";
 import { useDocumentNavigation } from "./hooks/useDocumentNavigation.js";
 import { useDocumentSync } from "./hooks/useDocumentSync.js";
+import { useDomSelectionDelete } from "./hooks/useDomSelectionDelete.js";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts.js";
 import { useSearchAndPalette } from "./hooks/useSearchAndPalette.js";
 
@@ -66,6 +67,7 @@ export const Editor = (): JSX.Element => {
     undo,
     redo,
   });
+  useDomSelectionDelete({ deleteBlocks: mutations.deleteBlocks });
 
   if (!doc) {
     return <div className="p-6 opacity-60">Loading…</div>;
