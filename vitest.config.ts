@@ -88,6 +88,24 @@ export default defineConfig({
           branches: 70,
           functions: 80,
         },
+        // webview の Phase 4 対象 (slash menu / link modal / global keymap)
+        // SlashMenu.tsx は filterItems / SLASH_ITEMS の pure 関数のみカバー対象。
+        // SlashMenu component (JSX) は Phase 5+ の React component テストで対応。
+        "webview/src/features/slash-menu/hooks/useSlashMenu.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/link-modal/hooks/useLinkPrompt.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/editor/hooks/useGlobalShortcuts.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
       },
     },
   },
