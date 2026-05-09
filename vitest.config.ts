@@ -34,10 +34,34 @@ export default defineConfig({
       thresholds: {
         // shared/src は Phase 1 で全ファイル網羅 (型のみと index は include / exclude 経由で対象外)
         "shared/src/**": { lines: 80, branches: 70, functions: 80 },
-        // extension/src は markdown.ts のみ Phase 1 対象。markdownEditorProvider は Phase 2+
+        // extension/src は markdown.ts のみ Phase 1 対象。markdownEditorProvider は Phase 3+
         "extension/src/markdown.ts": { lines: 80, branches: 70, functions: 80 },
-        // webview は features/highlight のみ Phase 1 対象。他 features は Phase 2+
+        // webview の Phase 1 対象
         "webview/src/features/highlight/**": { lines: 80, branches: 70, functions: 80 },
+        // webview の Phase 2 対象 (pure utilities)
+        "webview/src/features/block/blockId.ts": { lines: 80, branches: 70, functions: 80 },
+        "webview/src/features/block/blockTransforms.ts": { lines: 80, branches: 70, functions: 80 },
+        "webview/src/features/block-menu/transformBlock.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        // webview の Phase 2 対象 (hooks)
+        "webview/src/features/editor/hooks/useDocumentHistory.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/editor/hooks/useSearch.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/editor/hooks/useActiveBlock.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
       },
     },
   },
