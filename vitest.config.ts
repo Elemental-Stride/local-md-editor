@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config";
 import { CleanTreeReporter } from "./vitest.reporters.ts";
 
+// 業界標準のしきい値。新規 / 既存ファイルが満たすべきデフォルト。
+const STANDARD = { lines: 80, branches: 70, functions: 80 };
+
 export default defineConfig({
   test: {
     reporters: [new CleanTreeReporter()],
@@ -28,84 +31,11 @@ export default defineConfig({
         "webview/src/resources.ts", // VS Code resource 薄ラッパ
       ],
       reporter: ["text", "html"],
-      // 段階的にカバレッジを広げる方針なので global threshold は設けず、Phase 1
-      // 対象ファイルにだけ業界標準 (line 80 / branch 70 / function 80) を gate
-      // として課す。Phase 2 以降で対象ファイルが増えたらここに glob を追加する。
+      // 全測定対象を STANDARD (line 80 / branch 70 / func 80) で gate
       thresholds: {
-        // shared/src は Phase 1 で全ファイル網羅 (型のみと index は include / exclude 経由で対象外)
-        "shared/src/**": { lines: 80, branches: 70, functions: 80 },
-        // extension/src は markdown.ts のみ Phase 1 対象。markdownEditorProvider は Phase 3+
-        "extension/src/markdown.ts": { lines: 80, branches: 70, functions: 80 },
-        // webview の Phase 1 対象
-        "webview/src/features/highlight/**": { lines: 80, branches: 70, functions: 80 },
-        // webview の Phase 2 対象 (pure utilities)
-        "webview/src/features/block/blockId.ts": { lines: 80, branches: 70, functions: 80 },
-        "webview/src/features/block/blockTransforms.ts": { lines: 80, branches: 70, functions: 80 },
-        "webview/src/features/block-menu/transformBlock.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        // webview の Phase 2 対象 (hooks)
-        "webview/src/features/editor/hooks/useDocumentHistory.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useSearch.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useActiveBlock.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        // webview の Phase 3 対象 (主要 hook 群)
-        "webview/src/features/editor/hooks/useBlockReconciliation.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useBlockBuilders.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useDocumentNavigation.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useDocumentMutations.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useDocumentSync.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        // webview の Phase 4 対象 (slash menu / link modal / global keymap)
-        // SlashMenu.tsx は filterItems / SLASH_ITEMS の pure 関数のみカバー対象。
-        // SlashMenu component (JSX) は Phase 5+ の React component テストで対応。
-        "webview/src/features/slash-menu/hooks/useSlashMenu.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/link-modal/hooks/useLinkPrompt.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useGlobalShortcuts.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
+        "shared/src/**": STANDARD,
+        "extension/src/**": STANDARD,
+        "webview/src/**": STANDARD,
       },
     },
   },

@@ -86,5 +86,17 @@ describe("useDocumentNavigation", () => {
       act(() => result.current.navigateOut("nonexistent", "down"));
       expect(result.current.focus).toBeNull();
     });
+
+    test("doc=null (init 未受信) でも navigateOut は no-op として安全に動作する", () => {
+      // setDoc updater 内 `if (!prev) return prev;` true 分岐
+      const useNavWithNullDoc = () => {
+        const [, setDoc] = useState<Document | null>(null);
+        return useDocumentNavigation({ setDoc });
+      };
+      const { result } = renderHook(() => useNavWithNullDoc());
+      // 例外を投げず、focus も変更しないこと
+      act(() => result.current.navigateOut("any-id", "down"));
+      expect(result.current.focus).toBeNull();
+    });
   });
 });

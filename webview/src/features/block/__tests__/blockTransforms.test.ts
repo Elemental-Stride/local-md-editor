@@ -201,6 +201,54 @@ describe("reclassify", () => {
       expect(r.kind).toBe("heading");
       expect((r as HeadingBlock).level).toBe(2);
     });
+
+    test("同じレベルの heading 編集は kind / level を保ったまま source を更新できる", () => {
+      // `if (current.kind === "heading" && current.level === level)` 真分岐
+      const h = heading(2, "## old");
+      const r = reclassify(h, "## new");
+      expect(r.kind).toBe("heading");
+      expect((r as HeadingBlock).level).toBe(2);
+      expect(r.source).toBe("## new");
+    });
+
+    test("既存 taskItem の source 更新は kind / checked を保ったまま反映できる", () => {
+      // `if (current.kind === "taskItem")` 真分岐
+      const t: TaskItemBlock = {
+        id: "t",
+        kind: "taskItem",
+        checked: true,
+        source: "- [x] old",
+        inlines: [],
+      };
+      const r = reclassify(t, "- [x] new");
+      expect(r.kind).toBe("taskItem");
+      expect((r as TaskItemBlock).checked).toBe(true);
+      expect(r.source).toBe("- [x] new");
+    });
+
+    test("既存 bulletItem の source 更新は kind を保ったまま反映できる", () => {
+      // `if (current.kind === "bulletItem")` 真分岐
+      const b = { id: "b", kind: "bulletItem" as const, source: "- old", inlines: [] };
+      const r = reclassify(b, "- new");
+      expect(r.kind).toBe("bulletItem");
+      expect(r.source).toBe("- new");
+    });
+
+    test("既存 orderedItem の source 更新は kind を保ったまま反映できる", () => {
+      // `if (current.kind === "orderedItem")` 真分岐
+      const o = { id: "o", kind: "orderedItem" as const, source: "1. old", inlines: [] };
+      const r = reclassify(o, "2. new");
+      expect(r.kind).toBe("orderedItem");
+      expect(r.source).toBe("2. new");
+    });
+
+    test("既存 paragraph の source 更新は kind を保ったまま反映できる", () => {
+      // 末尾分岐 `if (current.kind === "paragraph") return ...` 真分岐
+      const p = para("old");
+      const r = reclassify(p, "new plain text");
+      expect(r.kind).toBe("paragraph");
+      expect(r.source).toBe("new plain text");
+    });
   });
 });
 

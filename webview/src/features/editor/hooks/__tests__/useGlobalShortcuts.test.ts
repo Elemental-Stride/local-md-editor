@@ -29,7 +29,7 @@ const setup = (): Mocks => {
 };
 
 const fire = (
-  init: KeyboardEventInit & { tag?: "INPUT" | "TEXTAREA"; overlay?: boolean; },
+  init: KeyboardEventInit & { tag?: "INPUT" | "TEXTAREA" | "DIV"; overlay?: boolean; },
 ): KeyboardEvent => {
   // overlay 入力 (検索パネルなど) からの発火を再現するときは、
   // [data-overlay-input] を親に持つ input/textarea を target に立てる。
@@ -121,6 +121,21 @@ describe("useGlobalShortcuts", () => {
     test("オーバーレイでない textarea からの undo は document 側 undo を呼べる", () => {
       const m = setup();
       fire({ key: "z", metaKey: true, tag: "TEXTAREA", overlay: false });
+      expect(m.undo).toHaveBeenCalled();
+    });
+
+    test("オーバーレイ input でも redo (Cmd+Y) は流さず input 側 undo に委ねる", () => {
+      // Cmd+Y 経路の `if (isInOverlayInput(...)) return;` 真分岐
+      const m = setup();
+      fire({ key: "y", ctrlKey: true, tag: "INPUT", overlay: true });
+      expect(m.redo).not.toHaveBeenCalled();
+    });
+
+    test("INPUT / TEXTAREA 以外の要素はオーバーレイ判定の対象外", () => {
+      // isInOverlayInput の `target.tagName !== "INPUT" && target.tagName !== "TEXTAREA"` true 分岐
+      // = INPUT/TEXTAREA 以外なら overlay でも undo 経路へ進む
+      const m = setup();
+      fire({ key: "z", metaKey: true, tag: "DIV", overlay: true });
       expect(m.undo).toHaveBeenCalled();
     });
   });

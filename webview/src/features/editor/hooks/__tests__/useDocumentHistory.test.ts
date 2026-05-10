@@ -94,6 +94,27 @@ describe("useDocumentHistory", () => {
     });
   });
 
+  describe("HISTORY_LIMIT", () => {
+    test("100 を超える hard checkpoint は古いものから捨てられる (past.shift)", () => {
+      const { result } = renderHook(() => useDocumentHistory());
+      // 101 回 hard を積む。各 hard は別ステップとしてカウントされる。
+      for (let i = 0; i < 101; i++) {
+        act(() => result.current.recordCheckpoint(doc(`v${i}`), null, "hard"));
+        vi.advanceTimersByTime(10);
+      }
+      // 101 個目を積んだ時点で `past.length > HISTORY_LIMIT` (= 100) なので shift される。
+      // 結果として最初に積んだ "v0" は undo 経路に残らない。
+      // 100 回 undo して全部巻き戻すと、最古に残るのは "v1"。
+      let last = null;
+      for (let i = 0; i < 100; i++) {
+        last = result.current.popUndo(doc("current"), null);
+      }
+      expect(last?.doc).toEqual(doc("v1"));
+      // 101 回目の undo は空 (= 全 past を消費しきった)
+      expect(result.current.popUndo(doc("current"), null)).toBeNull();
+    });
+  });
+
   describe("reset", () => {
     test("past / future の両方を破棄できる", () => {
       const { result } = renderHook(() => useDocumentHistory());

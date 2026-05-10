@@ -179,6 +179,24 @@ describe("tokenize", () => {
       const tokens = tokenize(`<img src="x" />`, "html");
       expect(containsToken(tokens, "punctuation", "/>")).toBe(true);
     });
+
+    test("値なしのバラ属性 (<input disabled>) も attribute として認識できる", () => {
+      // tokenizeHtml の `if (am[2])` else 分岐 — `=` が無い属性
+      const tokens = tokenize("<input disabled>", "html");
+      expect(containsToken(tokens, "attribute", "disabled")).toBe(true);
+    });
+
+    test("引用符無しの属性値 (<a href=x>) は plain として認識できる", () => {
+      // tokenizeHtml の attribute value 分岐 `else push("plain", val)`
+      const tokens = tokenize("<a href=x>", "html");
+      expect(containsToken(tokens, "plain", "x")).toBe(true);
+    });
+
+    test("タグ名にならない `<` (<>) は plain として認識できる", () => {
+      // `if (!m)` true 分岐 — タグ正規表現にマッチしない `<` 始まり
+      const tokens = tokenize("<>", "html");
+      expect(containsToken(tokens, "plain", "<>")).toBe(true);
+    });
   });
 
   describe("Markdown", () => {
@@ -205,6 +223,13 @@ describe("tokenize", () => {
     test("bullet マーカーを punctuation として認識できる", () => {
       const tokens = tokenize("- item", "md");
       expect(containsToken(tokens, "punctuation", "- ")).toBe(true);
+    });
+
+    test("複数行 markdown では行末に plain 改行トークンを挟める", () => {
+      // tokenizeMarkdown の `if (li < lines.length - 1)` true 分岐 — 最終行以外で
+      // 改行 plain を出力する
+      const tokens = tokenize("# A\n# B", "md");
+      expect(containsToken(tokens, "plain", "\n")).toBe(true);
     });
   });
 

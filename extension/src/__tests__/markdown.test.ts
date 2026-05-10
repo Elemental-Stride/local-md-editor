@@ -166,6 +166,43 @@ describe("markdownToDocument", () => {
       ).blocks[0] as TableBlock;
       expect(t.rows[0].cells[0].text).toBe("![A](u.png)");
     });
+
+    test("セル内の未知タグ (<span>) は中身を透過させて text 化できる", () => {
+      // cellHtmlToText の default walk (line 144) — 認識していないラッパー要素
+      // を素通りさせて中の text を取り出す
+      const t = markdownToDocument(
+        "<table><tr><td><span>inner</span></td></tr></table>\n",
+      ).blocks[0] as TableBlock;
+      expect(t.rows[0].cells[0].text).toBe("inner");
+    });
+
+    test("セル内の <em> を *italic* に復元できる", () => {
+      const t = markdownToDocument(
+        "<table><tr><td><em>e</em></td></tr></table>\n",
+      ).blocks[0] as TableBlock;
+      expect(t.rows[0].cells[0].text).toBe("*e*");
+    });
+
+    test("セル内の <i> も *italic* と同等に扱える", () => {
+      const t = markdownToDocument(
+        "<table><tr><td><i>e</i></td></tr></table>\n",
+      ).blocks[0] as TableBlock;
+      expect(t.rows[0].cells[0].text).toBe("*e*");
+    });
+
+    test("セル内の <code> を `code` に復元できる", () => {
+      const t = markdownToDocument(
+        "<table><tr><td><code>x</code></td></tr></table>\n",
+      ).blocks[0] as TableBlock;
+      expect(t.rows[0].cells[0].text).toBe("`x`");
+    });
+
+    test("セル内の <b> も **bold** と同等に扱える", () => {
+      const t = markdownToDocument(
+        "<table><tr><td><b>b</b></td></tr></table>\n",
+      ).blocks[0] as TableBlock;
+      expect(t.rows[0].cells[0].text).toBe("**b**");
+    });
   });
 
   describe("空段落マーカー", () => {
@@ -185,6 +222,33 @@ describe("markdownToDocument", () => {
     test("リストアイテム内の継続段落を独立 paragraph として切り出せる", () => {
       const blocks = markdownToDocument("- item\n\n  continuation\n").blocks;
       expect(blocks.map((b) => b.kind)).toEqual(["bulletItem", "paragraph"]);
+    });
+
+    test("空のリストアイテム (段落子要素なし) を空 source の bulletItem として扱える", () => {
+      // remark-gfm は `-` 単独行を「段落のない空アイテム」としてパースする
+      // → extractListBlocks 内で leadEnd が null のまま position.end へフォールバック
+      const blocks = markdownToDocument("-\n").blocks;
+      expect(blocks.map((b) => b.kind)).toEqual(["bulletItem"]);
+      expect(blocks[0].source).toBeDefined();
+    });
+  });
+
+  describe("既知範囲外の phrasing 要素", () => {
+    test("strikethrough (~~text~~) は default 経路で flattenText を通り text 化できる", () => {
+      // remark-gfm の delete 型は default ケースでヒットし、children を持つので
+      // flattenText の "children" in n 分岐 (line 32) が通る
+      const p = firstBlock("~~struck~~\n", "paragraph");
+      const textTokens = p.inlines.filter((t) => t.type === "text");
+      expect(textTokens.some((t) => "value" in t && t.value === "struck")).toBe(true);
+    });
+
+    test("strikethrough 内のネスト (~~**bold**~~) で flattenText の再帰経路を通る", () => {
+      // 外側の delete (default) → flattenText 呼び出し → strong child は text を持たない
+      // ので "children" in n 分岐から再帰呼び出し (line 32) が走る
+      const p = firstBlock("~~**inner**~~\n", "paragraph");
+      // 結果はとにかく描画落ちしなければ OK (text として "inner" が拾える)
+      const textTokens = p.inlines.filter((t) => t.type === "text");
+      expect(textTokens.some((t) => "value" in t && t.value === "inner")).toBe(true);
     });
   });
 });
@@ -232,6 +296,21 @@ describe("documentToMarkdown", () => {
       };
       const out = documentToMarkdown({ blocks: [block] });
       expect(out.startsWith("````")).toBe(true);
+    });
+
+    test("先に長いバッククォート列があり、後に短い列が来てもフェンスは長い方に追従できる", () => {
+      // fenceFor の `if (cur > max)` else 分岐 (line 372) を観測する。
+      // 先に 4 連 (max=4) → 区切り → 2 連 (cur=1,2 とも < max なので else を 2 回通る)
+      const block: CodeBlock = {
+        id: "c",
+        kind: "code",
+        lang: "",
+        value: "```` xx ``",
+        source: "",
+      };
+      const out = documentToMarkdown({ blocks: [block] });
+      // 4+1 = 5 連バッククォートのフェンスになる
+      expect(out.startsWith("`````")).toBe(true);
     });
   });
 
