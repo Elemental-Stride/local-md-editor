@@ -3,12 +3,17 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderInlines } from "../InlineRenderer.js";
 
-const postSpy = vi.fn();
-vi.mock("../../../vscode.js", () => ({
-  post: (msg: unknown) => postSpy(msg),
+// vi.mock は変換時に hoist されるため、ファクトリ内で top-level の let/const を
+// 参照すると TDZ になり得る。spy と可変参照を vi.hoisted 経由で先回り評価する。
+const harness = vi.hoisted(() => ({
+  postSpy: vi.fn<(msg: unknown) => void>(),
+  resolvedValue: { current: "vscode-webview://resolved.png" as string | null | undefined },
 }));
 
-let resolvedValue: string | null | undefined = "vscode-webview://resolved.png";
+vi.mock("../../../vscode.js", () => ({
+  post: (msg: unknown) => harness.postSpy(msg),
+}));
+
 vi.mock("../../../resources.js", () => ({
   classifyUrl: (url: string) => {
     if (url === "") return { kind: "remote" };
@@ -16,13 +21,18 @@ vi.mock("../../../resources.js", () => ({
     if (/^https?:\/\//i.test(url)) return { kind: "remote" };
     return { kind: "relative" };
   },
-  useResolvedUri: () => resolvedValue,
+  useResolvedUri: () => harness.resolvedValue.current,
 }));
+
+const postSpy = harness.postSpy;
+const setResolvedValue = (v: string | null | undefined): void => {
+  harness.resolvedValue.current = v;
+};
 
 afterEach(() => {
   cleanup();
   postSpy.mockClear();
-  resolvedValue = "vscode-webview://resolved.png";
+  harness.resolvedValue.current = "vscode-webview://resolved.png";
 });
 
 const text = (value: string): InlineToken => ({ type: "text", value });
@@ -114,7 +124,7 @@ describe("renderInlines", () => {
     });
 
     test("相対パスは extension での解決済み URI を使って <img> 描画できる", () => {
-      resolvedValue = "vscode-webview://resolved/foo.png";
+      setResolvedValue("vscode-webview://resolved/foo.png");
       const { container } = render(
         <>{renderInlines([{ type: "image", url: "./foo.png", alt: "A" }])}</>,
       );
@@ -124,7 +134,7 @@ describe("renderInlines", () => {
     });
 
     test("解決中は ローディング表示を出せる", () => {
-      resolvedValue = undefined;
+      setResolvedValue(undefined);
       render(
         <>{renderInlines([{ type: "image", url: "./loading.png", alt: "X" }])}</>,
       );
@@ -132,7 +142,7 @@ describe("renderInlines", () => {
     });
 
     test("解決失敗時はエラー表示を出せる", () => {
-      resolvedValue = null;
+      setResolvedValue(null);
       render(
         <>{renderInlines([{ type: "image", url: "./missing.png", alt: "X" }])}</>,
       );
@@ -153,7 +163,7 @@ describe("renderInlines", () => {
 
     test("alt が空文字の解決中 (相対パス) では url をテキストとして表示できる", () => {
       // RelativeImage の解決中 `alt || url` else 分岐
-      resolvedValue = undefined;
+      setResolvedValue(undefined);
       render(
         <>{renderInlines([{ type: "image", url: "./loading.png", alt: "" }])}</>,
       );

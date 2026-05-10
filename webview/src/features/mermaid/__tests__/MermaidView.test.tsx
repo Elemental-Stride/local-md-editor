@@ -1,17 +1,23 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const initializeSpy = vi.fn();
-const renderSpy = vi.fn();
+// vi.mock は変換時に hoist されるため、ファクトリ内で top-level の spy を
+// 参照すると TDZ になり得る。vi.hoisted で先回り評価する。
+const spies = vi.hoisted(() => ({
+  initializeSpy: vi.fn(),
+  renderSpy: vi.fn(),
+}));
 
 vi.mock("mermaid", () => ({
   default: {
-    initialize: (...args: unknown[]) => initializeSpy(...args),
-    render: (...args: unknown[]) => renderSpy(...args),
+    initialize: (...args: unknown[]) => spies.initializeSpy(...args),
+    render: (...args: unknown[]) => spies.renderSpy(...args),
   },
 }));
 
 import { MermaidView } from "../MermaidView.js";
+
+const { initializeSpy, renderSpy } = spies;
 
 beforeEach(() => {
   initializeSpy.mockClear();

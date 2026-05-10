@@ -1,7 +1,7 @@
 import type { Block } from "@local-md-editor/shared";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createRef } from "react";
-import { describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { useImageDrop } from "../useImageDrop.js";
 
 // happy-dom の FileReader を上書きして data URL の読み取り結果を制御する
@@ -18,8 +18,17 @@ class StubFileReader {
     });
   }
 }
-// FileReader 全体を差し替え (cleanup は不要 — テスト終了で global state は捨てられる)
-(globalThis as unknown as { FileReader: unknown; }).FileReader = StubFileReader;
+
+// Vitest はテスト終了で global state を破棄しないため、後続テストの干渉を
+// 避けるべく元の FileReader を退避して afterAll で必ず復元する。
+const FileReaderHost = globalThis as unknown as { FileReader: unknown; };
+const originalFileReader = FileReaderHost.FileReader;
+beforeAll(() => {
+  FileReaderHost.FileReader = StubFileReader;
+});
+afterAll(() => {
+  FileReaderHost.FileReader = originalFileReader;
+});
 
 const para = (source: string): Block => ({ id: "p", kind: "paragraph", source, inlines: [] });
 
