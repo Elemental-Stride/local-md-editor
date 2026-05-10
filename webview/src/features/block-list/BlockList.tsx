@@ -26,6 +26,26 @@ type MenuState = { id: BlockId; anchorRect: DOMRect; };
 
 const DRAG_MIME = "application/x-local-md-editor-block";
 
+// 見出しの直前に余白を入れて視覚的なセクション区切りを作る。文書冒頭の見出しは
+// 余白なしにしたいので、呼び出し側で `first:mt-0` を併用して上書きする。
+const headingTopMargin = (block: Block): string => {
+  if (block.kind !== "heading") return "";
+  switch (block.level) {
+    case 1:
+      return "mt-8";
+    case 2:
+      return "mt-6";
+    case 3:
+      return "mt-5";
+    case 4:
+      return "mt-4";
+    case 5:
+      return "mt-3";
+    case 6:
+      return "mt-2";
+  }
+};
+
 export const BlockList = (
   {
     document,
@@ -115,9 +135,9 @@ export const BlockList = (
             key={block.id}
             data-block-row
             data-block-id={block.id}
-            className={`group relative flex items-start gap-1 py-1 ${
-              dragId === block.id ? "opacity-40" : ""
-            }`}
+            className={`group relative flex items-start gap-1 py-1 first:!mt-0 ${
+              headingTopMargin(block)
+            } ${dragId === block.id ? "opacity-40" : ""}`}
             onDragOver={(e) => handleDragOver(e, block.id)}
             onDrop={(e) => handleDrop(e, block.id)}
           >
