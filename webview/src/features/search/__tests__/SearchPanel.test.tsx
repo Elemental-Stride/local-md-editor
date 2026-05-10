@@ -151,4 +151,136 @@ describe("SearchPanel", () => {
       expect(onClose).toHaveBeenCalled();
     });
   });
+
+  describe("ブロック種別ごとの検索対象テキスト", () => {
+    test("code ブロックは block.value を検索対象にできる", () => {
+      const codeBlock: Block = {
+        id: "c",
+        kind: "code",
+        lang: "js",
+        value: "const target = 1",
+        source: "```js\nconst target = 1\n```",
+      };
+      setup([codeBlock]);
+      fireEvent.change(queryInput(), { target: { value: "target" } });
+      expect(screen.getByText("1 / 1")).toBeInTheDocument();
+    });
+
+    test("table ブロックは source (HTML) を検索対象にできる", () => {
+      const tableBlock: Block = {
+        id: "t",
+        kind: "table",
+        source: "<table><tr><td>secret</td></tr></table>",
+        rows: [],
+      };
+      setup([tableBlock]);
+      fireEvent.change(queryInput(), { target: { value: "secret" } });
+      expect(screen.getByText("1 / 1")).toBeInTheDocument();
+    });
+
+    test("code ブロックの置換は block.value を更新できる", () => {
+      const onReplaceCommit = vi.fn();
+      const codeBlock: Block = {
+        id: "c",
+        kind: "code",
+        lang: "js",
+        value: "let x = 1",
+        source: "```js\nlet x = 1\n```",
+      };
+      setup([codeBlock], { onReplaceCommit });
+      fireEvent.change(queryInput(), { target: { value: "let" } });
+      fireEvent.click(screen.getByText("置換"));
+      fireEvent.change(screen.getByPlaceholderText("置換後"), {
+        target: { value: "const" },
+      });
+      fireEvent.click(screen.getByText("1件"));
+      const result = onReplaceCommit.mock.calls[0][0] as { blocks: Block[]; };
+      const code = result.blocks[0];
+      expect(code.kind).toBe("code");
+      if (code.kind === "code") expect(code.value).toBe("const x = 1");
+    });
+
+    test("table ブロックの置換は source (HTML) を更新できる", () => {
+      const onReplaceCommit = vi.fn();
+      const tableBlock: Block = {
+        id: "t",
+        kind: "table",
+        source: "<table><tr><td>old</td></tr></table>",
+        rows: [],
+      };
+      setup([tableBlock], { onReplaceCommit });
+      fireEvent.change(queryInput(), { target: { value: "old" } });
+      fireEvent.click(screen.getByText("置換"));
+      fireEvent.change(screen.getByPlaceholderText("置換後"), {
+        target: { value: "new" },
+      });
+      fireEvent.click(screen.getByText("1件"));
+      const result = onReplaceCommit.mock.calls[0][0] as { blocks: Block[]; };
+      expect(result.blocks[0].source).toBe("<table><tr><td>new</td></tr></table>");
+    });
+  });
+
+  describe("置換 input のキーボード操作", () => {
+    test("置換 input で Enter を押すと replaceCurrent を呼べる", () => {
+      const onReplaceCommit = vi.fn();
+      setup([para("a", "hello")], { onReplaceCommit });
+      fireEvent.change(queryInput(), { target: { value: "hello" } });
+      fireEvent.click(screen.getByText("置換"));
+      const replaceInput = screen.getByPlaceholderText("置換後");
+      fireEvent.change(replaceInput, { target: { value: "hi" } });
+      fireEvent.keyDown(replaceInput, { key: "Enter" });
+      expect(onReplaceCommit).toHaveBeenCalled();
+    });
+
+    test("置換 input で Escape を押すと onClose を呼べる", () => {
+      const { onClose } = setup([para("a", "x")]);
+      fireEvent.click(screen.getByText("置換"));
+      fireEvent.keyDown(screen.getByPlaceholderText("置換後"), { key: "Escape" });
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    test("IME 変換中の Enter は replaceCurrent を発火させない", () => {
+      const onReplaceCommit = vi.fn();
+      setup([para("a", "hello")], { onReplaceCommit });
+      fireEvent.change(queryInput(), { target: { value: "hello" } });
+      fireEvent.click(screen.getByText("置換"));
+      const replaceInput = screen.getByPlaceholderText("置換後");
+      fireEvent.keyDown(replaceInput, { key: "Enter", isComposing: true });
+      expect(onReplaceCommit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("マッチ無し時の置換ボタン", () => {
+    test("マッチが 0 件のときは「1件」/「全て」が disabled になる", () => {
+      setup([para("a", "no match here")]);
+      fireEvent.change(queryInput(), { target: { value: "xyz" } });
+      fireEvent.click(screen.getByText("置換"));
+      const one = screen.getByText("1件") as HTMLButtonElement;
+      const all = screen.getByText("全て") as HTMLButtonElement;
+      expect(one.disabled).toBe(true);
+      expect(all.disabled).toBe(true);
+    });
+
+    test("マッチ無しで「全て」を押しても onReplaceCommit を呼ばない", () => {
+      const onReplaceCommit = vi.fn();
+      setup([para("a", "x")], { onReplaceCommit });
+      fireEvent.click(screen.getByText("置換"));
+      // disabled でも click は出来るが内部で early return
+      const all = screen.getByText("全て");
+      fireEvent.click(all);
+      expect(onReplaceCommit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("検索 input の onMouseDown", () => {
+    test("パネル本体の onMouseDown は stopPropagation する", () => {
+      const { container } = setup([para("a", "x")]);
+      // パネル wrapper を取得
+      const panel = container.querySelector("[data-overlay-input]") as HTMLElement;
+      const event = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+      const stopSpy = vi.spyOn(event, "stopPropagation");
+      panel.dispatchEvent(event);
+      expect(stopSpy).toHaveBeenCalled();
+    });
+  });
 });

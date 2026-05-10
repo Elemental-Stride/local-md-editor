@@ -59,16 +59,8 @@ export default defineConfig({
 
         // === 混在ディレクトリ内の STANDARD 達成ファイル (個別、続き) ===
         "webview/src/features/block/hooks/useBlockEditing.ts": STANDARD,
-
-        // === branch のみ standard 未達のファイル (line / func は STANDARD) ===
-        "webview/src/features/block-menu/BlockMenu.tsx": {
-          ...STANDARD,
-          branches: 60,
-        },
-        "webview/src/features/search/SearchPanel.tsx": {
-          ...STANDARD,
-          branches: 60,
-        },
+        "webview/src/features/block-menu/BlockMenu.tsx": STANDARD,
+        "webview/src/features/search/SearchPanel.tsx": STANDARD,
       },
     },
   },

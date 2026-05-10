@@ -155,4 +155,41 @@ describe("BlockMenu", () => {
       expect(container.firstChild).toBeNull();
     });
   });
+
+  describe("外部 scroll イベントでの自動 close", () => {
+    test("メニュー外の scroll で onClose を呼べる", () => {
+      const outside = document.createElement("div");
+      document.body.appendChild(outside);
+      const { onClose } = setup([para("a")], "a");
+      // capture フェーズ listener が拾うので bubbles の有無は問わない。
+      // target をメニュー外要素に向けて scroll を発火させる。
+      const evt = new Event("scroll", { bubbles: false });
+      Object.defineProperty(evt, "target", { value: outside, configurable: true });
+      window.dispatchEvent(evt);
+      expect(onClose).toHaveBeenCalled();
+      outside.remove();
+    });
+
+    test("メニュー内 (overflow-y-auto) の scroll では onClose を呼ばない", () => {
+      const { onClose } = setup([para("a")], "a");
+      const menu = screen.getByRole("menu");
+      const evt = new Event("scroll", { bubbles: false });
+      Object.defineProperty(evt, "target", { value: menu, configurable: true });
+      window.dispatchEvent(evt);
+      expect(onClose).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("ハンドル要素の mousedown は除外できる", () => {
+    test("[data-block-handle] 配下の mousedown では onClose を呼ばない", () => {
+      const handle = document.createElement("button");
+      handle.setAttribute("data-block-handle", "");
+      document.body.appendChild(handle);
+      const { onClose } = setup([para("a")], "a");
+      // このハンドル要素自体が target として mousedown を受ける想定
+      fireEvent.mouseDown(handle);
+      expect(onClose).not.toHaveBeenCalled();
+      handle.remove();
+    });
+  });
 });
