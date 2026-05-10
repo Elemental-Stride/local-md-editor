@@ -64,3 +64,40 @@ export const tableBlockToHtml = (block: TableBlock): string => {
   lines.push("</table>");
   return lines.join("\n");
 };
+
+// TableBlock を GFM パイプテーブルとしてシリアライズする。表現できない構造
+// （rowspan/colspan あり、ヘッダ行なし、セルに改行あり、列数不一致、空テーブル）
+// のときは null を返し、呼び出し側に HTML フォールバックを促す。GFM はヘッダ行を
+// 必須としているため、最初の行がすべて header かどうかで判定する。
+export const tableBlockToMarkdown = (block: TableBlock): string | null => {
+  const rows = block.rows;
+  if (rows.length === 0) return null;
+
+  const colCount = rows[0].cells.length;
+  if (colCount === 0) return null;
+
+  for (const row of rows) {
+    if (row.cells.length !== colCount) return null;
+    for (const cell of row.cells) {
+      if (cell.rowspan > 1 || cell.colspan > 1) return null;
+      if (cell.text.includes("\n")) return null;
+    }
+  }
+
+  if (!rows[0].cells.every((c) => c.isHeader)) return null;
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].cells.some((c) => c.isHeader)) return null;
+  }
+
+  const escapeCell = (text: string): string => text.replace(/\|/g, "\\|");
+  const renderRow = (cells: TableBlock["rows"][number]["cells"]): string =>
+    `| ${cells.map((c) => escapeCell(c.text)).join(" | ")} |`;
+
+  const lines: string[] = [];
+  lines.push(renderRow(rows[0].cells));
+  lines.push(`| ${rows[0].cells.map(() => "---").join(" | ")} |`);
+  for (let i = 1; i < rows.length; i++) {
+    lines.push(renderRow(rows[i].cells));
+  }
+  return lines.join("\n");
+};

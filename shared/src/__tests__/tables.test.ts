@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { TableBlock } from "../blocks.js";
-import { cellTextToHtml, escapeHtml, tableBlockToHtml } from "../tables.js";
+import { cellTextToHtml, escapeHtml, tableBlockToHtml, tableBlockToMarkdown } from "../tables.js";
 
 // when: escapeHtml(given) を呼ぶ
 describe("escapeHtml", () => {
@@ -160,6 +160,142 @@ describe("tableBlockToHtml", () => {
     test("セル内の改行を <br /> として展開できる", () => {
       const block = makeBlock([{ cells: [{ text: "a\nb" }] }]);
       expect(tableBlockToHtml(block)).toContain("<td>a<br />b</td>");
+    });
+  });
+});
+
+// when: tableBlockToMarkdown(given) を呼ぶ
+//
+// GFM パイプテーブルで表現できる単純構造のみパイプ文字列を返し、
+// 表現できない構造 (rowspan/colspan、改行セル、ヘッダ行不整合、空、列数不一致)
+// では null を返して呼び出し側に HTML フォールバックを促す契約を凍結する。
+describe("tableBlockToMarkdown", () => {
+  const makeBlock = (
+    rows: { cells: { text: string; isHeader?: boolean; rowspan?: number; colspan?: number; }[]; }[],
+  ): TableBlock => ({
+    id: "t1",
+    kind: "table",
+    source: "",
+    rows: rows.map((row, i) => ({
+      id: `r${i}`,
+      cells: row.cells.map((c, j) => ({
+        id: `c${i}-${j}`,
+        text: c.text,
+        rowspan: c.rowspan ?? 1,
+        colspan: c.colspan ?? 1,
+        ...(c.isHeader !== undefined ? { isHeader: c.isHeader } : {}),
+      })),
+    })),
+  });
+
+  describe("パイプ表現が可能な構造", () => {
+    test("ヘッダ + 本文 1 行をパイプ形式で出力できる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h1", isHeader: true }, { text: "h2", isHeader: true }] },
+        { cells: [{ text: "a" }, { text: "b" }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBe(
+        ["| h1 | h2 |", "| --- | --- |", "| a | b |"].join("\n"),
+      );
+    });
+
+    test("ヘッダのみ (本文なし) のテーブルもパイプ形式で出力できる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h", isHeader: true }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBe(
+        ["| h |", "| --- |"].join("\n"),
+      );
+    });
+
+    test("複数本文行を全てパイプ形式で出力できる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h", isHeader: true }] },
+        { cells: [{ text: "a" }] },
+        { cells: [{ text: "b" }] },
+        { cells: [{ text: "c" }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBe(
+        ["| h |", "| --- |", "| a |", "| b |", "| c |"].join("\n"),
+      );
+    });
+
+    test("セル内の | は \\| にエスケープして出力できる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h", isHeader: true }] },
+        { cells: [{ text: "a | b" }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toContain("| a \\| b |");
+    });
+
+    test("空セルもパイプ形式で出力できる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h", isHeader: true }, { text: "", isHeader: true }] },
+        { cells: [{ text: "" }, { text: "x" }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBe(
+        ["| h |  |", "| --- | --- |", "|  | x |"].join("\n"),
+      );
+    });
+  });
+
+  describe("パイプ表現が不可能な構造 (null を返す)", () => {
+    test("空テーブルでは null を返せる", () => {
+      const block = makeBlock([]);
+      expect(tableBlockToMarkdown(block)).toBeNull();
+    });
+
+    test("0 列の行があれば null を返せる", () => {
+      const block = makeBlock([{ cells: [] }]);
+      expect(tableBlockToMarkdown(block)).toBeNull();
+    });
+
+    test("rowspan > 1 を含めば null を返せる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h", isHeader: true }] },
+        { cells: [{ text: "x", rowspan: 2 }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBeNull();
+    });
+
+    test("colspan > 1 を含めば null を返せる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h", isHeader: true }] },
+        { cells: [{ text: "x", colspan: 2 }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBeNull();
+    });
+
+    test("セルに改行を含めば null を返せる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h", isHeader: true }] },
+        { cells: [{ text: "a\nb" }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBeNull();
+    });
+
+    test("行ごとに列数が違えば null を返せる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h1", isHeader: true }, { text: "h2", isHeader: true }] },
+        { cells: [{ text: "a" }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBeNull();
+    });
+
+    test("先頭行が全 header でなければ null を返せる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "a" }, { text: "b" }] },
+        { cells: [{ text: "c" }, { text: "d" }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBeNull();
+    });
+
+    test("中間行に header セルが混ざれば null を返せる", () => {
+      const block = makeBlock([
+        { cells: [{ text: "h1", isHeader: true }, { text: "h2", isHeader: true }] },
+        { cells: [{ text: "a", isHeader: true }, { text: "b" }] },
+      ]);
+      expect(tableBlockToMarkdown(block)).toBeNull();
     });
   });
 });

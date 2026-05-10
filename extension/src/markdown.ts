@@ -10,11 +10,12 @@ import {
   type RawBlock,
   type TableBlock,
   tableBlockToHtml,
+  tableBlockToMarkdown,
   type TableCell,
   type TableRow,
   type TaskItemBlock,
 } from "@local-md-editor/shared";
-import type { List, PhrasingContent, Root, RootContent } from "mdast";
+import type { List, PhrasingContent, Root, RootContent, Table } from "mdast";
 import { type HTMLElement as ParsedHtmlElement, parse as parseHtml } from "node-html-parser";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
@@ -145,6 +146,64 @@ const cellHtmlToText = (cellEl: ParsedHtmlElement): string => {
   };
   for (const c of cellEl.childNodes) walk(c);
   return out.trim();
+};
+
+// MDAST のインライン群を markdown ソース文字列に戻す。GFM パイプテーブルの
+// セル内インラインから cell.text (markdown) を復元するために使う。
+// cellHtmlToText の MDAST 版にあたるが、入力ノード形が異なるため別関数。
+const mdastInlineToMarkdown = (nodes: PhrasingContent[]): string => {
+  let out = "";
+  for (const n of nodes) {
+    switch (n.type) {
+      case "text":
+        out += n.value;
+        break;
+      case "strong":
+        out += `**${mdastInlineToMarkdown(n.children)}**`;
+        break;
+      case "emphasis":
+        out += `*${mdastInlineToMarkdown(n.children)}*`;
+        break;
+      case "inlineCode":
+        out += `\`${n.value}\``;
+        break;
+      case "link":
+        out += `[${mdastInlineToMarkdown(n.children)}](${n.url})`;
+        break;
+      case "image":
+        out += `![${n.alt ?? ""}](${n.url})`;
+        break;
+      case "break":
+        // GFM パイプテーブルのセル内に hard break は出ないが、念のため空白扱いにする。
+        out += " ";
+        break;
+      default:
+        if ("children" in n) {
+          out += mdastInlineToMarkdown(n.children as PhrasingContent[]);
+        }
+    }
+  }
+  return out;
+};
+
+const mdastTableToBlock = (node: Table, source: string): TableBlock => {
+  const rows: TableRow[] = node.children.map((rowNode, rowIdx) => ({
+    id: newId(),
+    cells: rowNode.children.map((cellNode): TableCell => ({
+      id: newId(),
+      text: mdastInlineToMarkdown(cellNode.children),
+      rowspan: 1,
+      colspan: 1,
+      // GFM のパイプテーブルは構造的にヘッダ行が常に最初の 1 行のみ。
+      isHeader: rowIdx === 0,
+    })),
+  }));
+  return {
+    id: newId(),
+    kind: "table",
+    source,
+    rows,
+  };
 };
 
 const parseTableHtml = (html: string): TableBlock | null => {
@@ -325,6 +384,9 @@ const blockFromNode = (node: RootContent, source: string): Block => {
     const tb = parseTableHtml(node.value);
     if (tb) return { ...tb, source };
   }
+  if (node.type === "table") {
+    return mdastTableToBlock(node, source);
+  }
   return {
     id: newId(),
     kind: rawKindOf(node.type),
@@ -387,7 +449,10 @@ const codeBlockSource = (b: { lang: string; value: string; }): string => {
 // 生きた構造から正規 HTML を再生成する。コードブロックも同様に (lang, value)
 // から再生成し、webview での編集が正しく往復するようにする。
 const blockSource = (b: Block): string => {
-  if (b.kind === "table") return tableBlockToHtml(b);
+  // パイプ形式で表現可能な単純構造ならパイプを優先、そうでなければ HTML。
+  // rowspan/colspan・改行セル・ヘッダ行不整合などは tableBlockToMarkdown が
+  // null を返すので、その場合は HTML フォールバックで構造を保つ。
+  if (b.kind === "table") return tableBlockToMarkdown(b) ?? tableBlockToHtml(b);
   if (b.kind === "code") return codeBlockSource(b);
   // 意図的な空段落は、ハード改行風のプレースホルダで保存して markdown
   // 往復時に消えないようにする（markdown は連続する空行を畳み込むため）。
