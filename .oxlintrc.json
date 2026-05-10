@@ -8,8 +8,82 @@
   "rules": {
     "react/react-in-jsx-scope": "off",
     "react/no-array-index-key": "off",
-    "unicorn/require-post-message-target-origin": "off"
+    "unicorn/require-post-message-target-origin": "off",
+    "no-eval": "error",
+    "no-new-func": "error",
+    "no-restricted-globals": [
+      "error",
+      { "name": "fetch", "message": "外部通信は禁止 (Local First / No External Network Access)" },
+      {
+        "name": "XMLHttpRequest",
+        "message": "外部通信は禁止 (Local First / No External Network Access)"
+      },
+      {
+        "name": "WebSocket",
+        "message": "外部通信は禁止 (Local First / No External Network Access)"
+      },
+      {
+        "name": "EventSource",
+        "message": "外部通信は禁止 (Local First / No External Network Access)"
+      }
+    ]
   },
+  "overrides": [
+    {
+      "files": ["extension/src/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              { "name": "http", "message": "外部通信は禁止" },
+              { "name": "https", "message": "外部通信は禁止" },
+              { "name": "net", "message": "外部通信は禁止" },
+              { "name": "dgram", "message": "外部通信は禁止" },
+              { "name": "tls", "message": "外部通信は禁止" },
+              { "name": "child_process", "message": "RCE 防止のため使用禁止" },
+              { "name": "node:http", "message": "外部通信は禁止" },
+              { "name": "node:https", "message": "外部通信は禁止" },
+              { "name": "node:net", "message": "外部通信は禁止" },
+              { "name": "node:dgram", "message": "外部通信は禁止" },
+              { "name": "node:tls", "message": "外部通信は禁止" },
+              { "name": "node:child_process", "message": "RCE 防止のため使用禁止" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["webview/src/**/*.{ts,tsx}", "shared/src/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              { "name": "fs", "message": "Node 専用 API は webview/shared では使用禁止" },
+              { "name": "path", "message": "Node 専用 API は webview/shared では使用禁止" },
+              { "name": "os", "message": "Node 専用 API は webview/shared では使用禁止" },
+              {
+                "name": "child_process",
+                "message": "Node 専用 API は webview/shared では使用禁止"
+              },
+              { "name": "http", "message": "外部通信は禁止" },
+              { "name": "https", "message": "外部通信は禁止" },
+              { "name": "node:fs", "message": "Node 専用 API は webview/shared では使用禁止" },
+              { "name": "node:path", "message": "Node 専用 API は webview/shared では使用禁止" },
+              { "name": "node:os", "message": "Node 専用 API は webview/shared では使用禁止" },
+              {
+                "name": "node:child_process",
+                "message": "Node 専用 API は webview/shared では使用禁止"
+              },
+              { "name": "node:http", "message": "外部通信は禁止" },
+              { "name": "node:https", "message": "外部通信は禁止" }
+            ]
+          }
+        ]
+      }
+    }
+  ],
   "ignorePatterns": [
     "**/node_modules/**",
     "**/dist/**",
