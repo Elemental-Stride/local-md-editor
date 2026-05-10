@@ -8,3 +8,17 @@ onlyBuiltDependencies:
   - dprint
   - esbuild
   - keytar
+
+# Supply-chain hardening (pnpm 10.16+)
+# 公開後 7 日 (= 10080 分) 経たないバージョンはインストール不可。
+# npm worm 系の大半は 24-72h 以内に検知・yank されるため、後追い被害を遮断する。
+minimumReleaseAge: 10080
+
+# minimumReleaseAge は registry metadata の publish 時刻に依存する。
+# 古いパッケージは time フィールドが欠損していることがあるため、
+# 欠損時は install を許可する (= 古いパッケージは放置攻撃対象でないため許容)。
+minimumReleaseAgeIgnoreMissingTime: true
+
+# lockfile 不整合があれば install を失敗させる。CI 同等の安全性をローカルにも強制。
+# 依存追加・更新は明示的に `pnpm add` / `pnpm update` 経由で行う。
+frozenLockfile: true
