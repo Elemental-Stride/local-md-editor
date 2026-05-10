@@ -3,7 +3,7 @@
   "displayName": "Local MD Editor",
   "description": "Local-first, privacy-focused, Notion-like Markdown editor",
   "version": "0.1.0",
-  "publisher": "elemental-stride",
+  "publisher": "Elemental Stride",
   "license": "MIT",
   "private": true,
   "type": "commonjs",
