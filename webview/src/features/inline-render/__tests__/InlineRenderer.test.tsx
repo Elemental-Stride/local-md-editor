@@ -96,6 +96,22 @@ describe("renderInlines", () => {
       fireEvent.click(screen.getByRole("link"));
       expect(postSpy).toHaveBeenCalledWith({ type: "openLink", url: "https://e.x" });
     });
+
+    test("リンククリックは親要素の onClick を発火させない (stopPropagation)", () => {
+      // RenderedBlock を包むラッパが onClick で edit mode に遷移するため、
+      // リンククリックがそこへ伝播するとファイル遷移と編集開始が同時に走る。
+      const parentClick = vi.fn();
+      render(
+        <div onClick={parentClick}>
+          {renderInlines([
+            { type: "link", url: "./other.md", children: [text("L")] },
+          ])}
+        </div>,
+      );
+      fireEvent.click(screen.getByRole("link"));
+      expect(postSpy).toHaveBeenCalledWith({ type: "openLink", url: "./other.md" });
+      expect(parentClick).not.toHaveBeenCalled();
+    });
   });
 
   describe("画像", () => {

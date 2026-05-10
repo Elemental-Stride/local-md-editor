@@ -145,11 +145,36 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           return;
         }
         case "openLink": {
-          // Markdown 内のリンクとして妥当な http(s)/mailto のみ許可する。
-          // javascript: / file: / vscode: / data: 等を openExternal に渡すと
-          // 予期しないハンドラ起動 (RCE / 情報露出) の経路になり得るため拒否。
-          if (!ALLOWED_LINK_SCHEME.test(raw.url)) return;
-          await vscode.env.openExternal(vscode.Uri.parse(raw.url));
+          // openExternal はホワイトリスト方式で守る。javascript: / file: /
+          // vscode: / data: 等を素通しすると予期しないハンドラ起動
+          // (RCE / 情報露出) の経路になり得るため。
+          if (ALLOWED_LINK_SCHEME.test(raw.url)) {
+            await vscode.env.openExternal(vscode.Uri.parse(raw.url));
+            return;
+          }
+          if (SCHEME_PATTERN.test(raw.url)) return;
+          // `#anchor` は同一ドキュメント内スクロール機能が未実装なので drop。
+          // `/abs` はワークスペース外への脱出経路を作らないよう保守的に拒否。
+          if (raw.url === "" || raw.url.startsWith("#") || raw.url.startsWith("/")) return;
+          const cleanedRef = raw.url.replace(/[?#].*$/, "");
+          const target = resolveRelative(docDir, cleanedRef);
+          if (!target) return;
+          // 境界はワークスペースがあれば workspace folder、なければ docDir。
+          // 境界外を黙って開くと Local-First 思想に反するためユーザー確認を経る。
+          const boundary = workspaceRoot ?? docDir;
+          if (isInside(target, [boundary])) {
+            await vscode.commands.executeCommand("vscode.open", target);
+            return;
+          }
+          const boundaryName = workspaceRoot ? "ワークスペース" : "ドキュメントディレクトリ";
+          const choice = await vscode.window.showWarningMessage(
+            `${boundaryName}外のファイルです: ${target.fsPath}\n開きますか?`,
+            "開く",
+            "キャンセル",
+          );
+          if (choice === "開く") {
+            await vscode.commands.executeCommand("vscode.open", target);
+          }
           return;
         }
         case "resolveResource": {
