@@ -106,6 +106,97 @@ export default defineConfig({
           branches: 70,
           functions: 80,
         },
+        // Phase 5: 残りの React コンポーネント / DOM ヘビー hook / extension provider
+        "webview/src/features/code-block/CodeBlockPreview.tsx": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/code-block/CodeBlockView.tsx": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/inline-render/InlineRenderer.tsx": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/link-modal/LinkModal.tsx": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/slash-menu/SlashMenu.tsx": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/mermaid/MermaidView.tsx": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/block-menu/BlockMenu.tsx": {
+          lines: 80,
+          branches: 60,
+          functions: 80,
+        },
+        "webview/src/features/block/BlockEditor.tsx": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/block/RenderedBlock.tsx": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/block/hooks/useBlockEditing.ts": {
+          lines: 80,
+          branches: 40,
+          functions: 80,
+        },
+        "webview/src/features/block/hooks/useBlockKeyHandler.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/block/hooks/useImageDrop.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        "webview/src/features/search/SearchPanel.tsx": {
+          lines: 80,
+          branches: 60,
+          functions: 80,
+        },
+        "webview/src/features/editor/hooks/useDomSelectionDelete.ts": {
+          lines: 80,
+          branches: 70,
+          functions: 80,
+        },
+        // 部分カバー (将来 Phase 6+ で押し上げる対象)
+        // - BlockView / BlockList: drag-drop ハンドラを未テスト
+        // - TableView: 70% line。merge/unmerge/insertColumn 等の細かい構造変更パスが残る
+        // - Editor.tsx: smoke 1 件のみ。orchestration なので個別 hook テストでカバー済み
+        // - markdownEditorProvider: vscode mock の難易度が高くハンドラ全網羅は今回見送り
+        "webview/src/features/block/BlockView.tsx": {
+          lines: 70,
+          branches: 70,
+          functions: 25,
+        },
+        "webview/src/features/table/TableView.tsx": {
+          lines: 70,
+          branches: 60,
+          functions: 70,
+        },
+        "extension/src/markdownEditorProvider.ts": {
+          lines: 60,
+          branches: 30,
+          functions: 60,
+        },
       },
     },
   },

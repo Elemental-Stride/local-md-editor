@@ -8,7 +8,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "sourceMap": true,
-    "types": ["vscode-webview"],
+    "types": ["vscode-webview", "@testing-library/jest-dom"],
     "noEmit": true
   },
   "include": ["src"],
