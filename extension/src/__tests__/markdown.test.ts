@@ -205,6 +205,58 @@ describe("markdownToDocument", () => {
     });
   });
 
+  describe("GFM パイプテーブル", () => {
+    test("パイプテーブルを TableBlock に変換できる", () => {
+      const blocks = markdownToDocument("| h |\n| --- |\n| a |\n").blocks;
+      expect(blocks[0].kind).toBe("table");
+    });
+
+    test("先頭行を header (isHeader=true) として読み取れる", () => {
+      const t = markdownToDocument("| h |\n| --- |\n| a |\n").blocks[0] as TableBlock;
+      expect(t.rows[0].cells[0].isHeader).toBe(true);
+    });
+
+    test("本文行は isHeader=false として読み取れる", () => {
+      const t = markdownToDocument("| h |\n| --- |\n| a |\n").blocks[0] as TableBlock;
+      expect(t.rows[1].cells[0].isHeader).toBe(false);
+    });
+
+    test("複数列を全て読み取れる", () => {
+      const t = markdownToDocument(
+        "| h1 | h2 |\n| --- | --- |\n| a | b |\n",
+      ).blocks[0] as TableBlock;
+      expect(t.rows[0].cells.map((c) => c.text)).toEqual(["h1", "h2"]);
+      expect(t.rows[1].cells.map((c) => c.text)).toEqual(["a", "b"]);
+    });
+
+    test("セル内の **bold** を markdown ソースとしてセルテキストに保持できる", () => {
+      const t = markdownToDocument(
+        "| h |\n| --- |\n| **a** |\n",
+      ).blocks[0] as TableBlock;
+      expect(t.rows[1].cells[0].text).toBe("**a**");
+    });
+
+    test("セル内のリンクを [label](url) としてセルテキストに保持できる", () => {
+      const t = markdownToDocument(
+        "| h |\n| --- |\n| [L](https://e.x) |\n",
+      ).blocks[0] as TableBlock;
+      expect(t.rows[1].cells[0].text).toBe("[L](https://e.x)");
+    });
+
+    test("セル内のインラインコードを `code` としてセルテキストに保持できる", () => {
+      const t = markdownToDocument(
+        "| h |\n| --- |\n| `x` |\n",
+      ).blocks[0] as TableBlock;
+      expect(t.rows[1].cells[0].text).toBe("`x`");
+    });
+
+    test("rowspan / colspan は 1 として扱える (GFM はサポート外)", () => {
+      const t = markdownToDocument("| h |\n| --- |\n| a |\n").blocks[0] as TableBlock;
+      expect(t.rows[0].cells[0].rowspan).toBe(1);
+      expect(t.rows[0].cells[0].colspan).toBe(1);
+    });
+  });
+
   describe("空段落マーカー", () => {
     test("単独の \\\\ を空段落として正規化できる", () => {
       const p = firstBlock("\\\n", "paragraph");
@@ -328,7 +380,7 @@ describe("documentToMarkdown", () => {
   });
 
   describe("テーブル再生成", () => {
-    test("構造化された rows から正規 HTML を生成できる", () => {
+    test("header 行のない rows は HTML フォールバックで再生成できる", () => {
       const block: TableBlock = {
         id: "t",
         kind: "table",
@@ -341,6 +393,65 @@ describe("documentToMarkdown", () => {
       const out = documentToMarkdown({ blocks: [block] });
       expect(out).toContain("<table>");
       expect(out).toContain("<td>x</td>");
+    });
+
+    test("header + body の単純な rows は GFM パイプ形式で再生成できる", () => {
+      const block: TableBlock = {
+        id: "t",
+        kind: "table",
+        source: "",
+        rows: [
+          {
+            id: "r0",
+            cells: [{ id: "c0", text: "h", rowspan: 1, colspan: 1, isHeader: true }],
+          },
+          {
+            id: "r1",
+            cells: [{ id: "c1", text: "a", rowspan: 1, colspan: 1 }],
+          },
+        ],
+      };
+      expect(documentToMarkdown({ blocks: [block] })).toBe(
+        "| h |\n| --- |\n| a |\n",
+      );
+    });
+
+    test("rowspan を含む rows は HTML フォールバックで再生成できる", () => {
+      const block: TableBlock = {
+        id: "t",
+        kind: "table",
+        source: "",
+        rows: [
+          {
+            id: "r0",
+            cells: [{ id: "c0", text: "h", rowspan: 1, colspan: 1, isHeader: true }],
+          },
+          {
+            id: "r1",
+            cells: [{ id: "c1", text: "a", rowspan: 2, colspan: 1 }],
+          },
+        ],
+      };
+      expect(documentToMarkdown({ blocks: [block] })).toContain("<table>");
+    });
+
+    test("セルに改行を含む rows も HTML フォールバックで再生成できる", () => {
+      const block: TableBlock = {
+        id: "t",
+        kind: "table",
+        source: "",
+        rows: [
+          {
+            id: "r0",
+            cells: [{ id: "c0", text: "h", rowspan: 1, colspan: 1, isHeader: true }],
+          },
+          {
+            id: "r1",
+            cells: [{ id: "c1", text: "a\nb", rowspan: 1, colspan: 1 }],
+          },
+        ],
+      };
+      expect(documentToMarkdown({ blocks: [block] })).toContain("<br />");
     });
   });
 });
@@ -357,6 +468,11 @@ describe("round-trip (markdown ↔ Document)", () => {
     { name: "task 混在", md: "- [ ] todo\n- [x] done\n" },
     { name: "blockquote", md: "> quoted\n" },
     { name: "水平線", md: "---\n" },
+    { name: "GFM パイプテーブル (1 列)", md: "| h |\n| --- |\n| a |\n" },
+    {
+      name: "GFM パイプテーブル (2 列 2 行)",
+      md: "| h1 | h2 |\n| --- | --- |\n| a | b |\n",
+    },
   ])("$name を round-trip できる", ({ md }) => {
     expect(documentToMarkdown(markdownToDocument(md))).toBe(md);
   });
