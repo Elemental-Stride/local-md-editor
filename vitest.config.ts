@@ -37,6 +37,7 @@ export default defineConfig({
       thresholds: {
         // === 全ファイル STANDARD のディレクトリ (glob) ===
         "shared/src/**": STANDARD,
+        "extension/src/**": STANDARD,
         "webview/src/features/code-block/**": STANDARD,
         "webview/src/features/editor/hooks/**": STANDARD,
         "webview/src/features/highlight/**": STANDARD,
@@ -44,14 +45,13 @@ export default defineConfig({
         "webview/src/features/link-modal/**": STANDARD,
         "webview/src/features/mermaid/**": STANDARD,
         "webview/src/features/slash-menu/**": STANDARD,
+        "webview/src/features/table/**": STANDARD,
+        // block/ は top-level (BlockView/Editor/RenderedBlock + blockId/blockTransforms) は STANDARD
+        // hooks/ は useBlockEditing が非標準なので個別に列挙する
+        "webview/src/features/block/*.{ts,tsx}": STANDARD,
 
         // === 混在ディレクトリ内の STANDARD 達成ファイル (個別) ===
-        "extension/src/markdown.ts": STANDARD,
         "webview/src/features/block-menu/transformBlock.ts": STANDARD,
-        "webview/src/features/block/blockId.ts": STANDARD,
-        "webview/src/features/block/blockTransforms.ts": STANDARD,
-        "webview/src/features/block/BlockEditor.tsx": STANDARD,
-        "webview/src/features/block/RenderedBlock.tsx": STANDARD,
         "webview/src/features/block/hooks/useBlockKeyHandler.ts": STANDARD,
         "webview/src/features/block/hooks/useImageDrop.ts": STANDARD,
 
@@ -68,14 +68,6 @@ export default defineConfig({
           ...STANDARD,
           branches: 40,
         },
-
-        // === 部分カバー (将来押し上げる対象) ===
-        // BlockView: kind ルーティングのみ。editing パスや drag-drop ハンドラ未網羅。
-        "webview/src/features/block/BlockView.tsx": { lines: 70, branches: 70, functions: 25 },
-        // TableView: cell selection / 行列追加削除はカバー、merge / unmerge / 細かい構造変更が残る。
-        "webview/src/features/table/TableView.tsx": { lines: 70, branches: 60, functions: 70 },
-        // markdownEditorProvider: vscode module の完全モックが重く、ハンドラ全網羅は今回見送り。
-        "extension/src/markdownEditorProvider.ts": { lines: 60, branches: 30, functions: 60 },
       },
     },
   },
