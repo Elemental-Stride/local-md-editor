@@ -25,7 +25,9 @@ code --install-extension local-md-editor-<version>.vsix
 
 ## 使い方
 
-`.md` ファイルを「アプリケーションで開く」から `Local MD Editor` を選択するとブロックエディタで開きます。
+拡張機能をインストールすると、`.md` / `.markdown` ファイルを開いたときに自動で Local MD Editor が起動します。
+
+通常のテキストエディタで開きたい場合は、ファイルを右クリック → **Open With...** → **Text Editor** を選択してください。
 
 ### スラッシュコマンドでブロックを挿入・変換
 

@@ -42,7 +42,7 @@
           { "filenamePattern": "*.md" },
           { "filenamePattern": "*.markdown" }
         ],
-        "priority": "option"
+        "priority": "default"
       }
     ]
   },
