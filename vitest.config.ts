@@ -31,36 +31,11 @@ export default defineConfig({
         "webview/src/resources.ts", // VS Code resource 薄ラッパ
       ],
       reporter: ["text", "html"],
-      // 部分カバーの個別調整以外は全て STANDARD (line 80 / branch 70 / func 80)。
-      // ディレクトリ単位で全ファイルが STANDARD を満たせる場所は glob でまとめ、
-      // 新規ファイルが追加されたときに自動的に gate される形にする。
+      // 全測定対象を STANDARD (line 80 / branch 70 / func 80) で gate
       thresholds: {
-        // === 全ファイル STANDARD のディレクトリ (glob) ===
         "shared/src/**": STANDARD,
         "extension/src/**": STANDARD,
-        "webview/src/features/code-block/**": STANDARD,
-        "webview/src/features/editor/hooks/**": STANDARD,
-        "webview/src/features/highlight/**": STANDARD,
-        "webview/src/features/inline-render/**": STANDARD,
-        "webview/src/features/link-modal/**": STANDARD,
-        "webview/src/features/mermaid/**": STANDARD,
-        "webview/src/features/slash-menu/**": STANDARD,
-        "webview/src/features/table/**": STANDARD,
-        // block/ は top-level (BlockView/Editor/RenderedBlock + blockId/blockTransforms) は STANDARD
-        // hooks/ は useBlockEditing が非標準なので個別に列挙する
-        "webview/src/features/block/*.{ts,tsx}": STANDARD,
-
-        // === 混在ディレクトリ内の STANDARD 達成ファイル (個別) ===
-        "webview/src/features/block-menu/transformBlock.ts": STANDARD,
-        "webview/src/features/block-list/BlockList.tsx": STANDARD,
-        "webview/src/features/editor/Editor.tsx": STANDARD,
-        "webview/src/features/block/hooks/useBlockKeyHandler.ts": STANDARD,
-        "webview/src/features/block/hooks/useImageDrop.ts": STANDARD,
-
-        // === 混在ディレクトリ内の STANDARD 達成ファイル (個別、続き) ===
-        "webview/src/features/block/hooks/useBlockEditing.ts": STANDARD,
-        "webview/src/features/block-menu/BlockMenu.tsx": STANDARD,
-        "webview/src/features/search/SearchPanel.tsx": STANDARD,
+        "webview/src/**": STANDARD,
       },
     },
   },
