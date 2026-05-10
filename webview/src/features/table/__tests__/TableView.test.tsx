@@ -276,6 +276,38 @@ describe("TableView", () => {
       // Escape は blur を発火 → 編集解除
       expect(container.querySelector("textarea")).toBeNull();
     });
+
+    test("IME 変換中の Escape は blur を呼ばない (textarea が残る)", () => {
+      // onKeyDown の `if (e.nativeEvent.isComposing) return;` 分岐を観測
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
+      fireEvent.keyDown(ta, { key: "Escape", isComposing: true });
+      // 変換中は無視 → 編集モードは継続
+      expect(container.querySelector("textarea")).not.toBeNull();
+    });
+
+    test("textarea で Escape 以外のキーは何もしない (else-path)", () => {
+      // `if (e.key === "Escape")` の false 分岐を観測
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
+      fireEvent.keyDown(ta, { key: "a" });
+      expect(container.querySelector("textarea")).not.toBeNull();
+    });
+
+    test("編集中のセルから外部クリックすると editing が解除される", () => {
+      // useEffect の outside-mousedown handler が editingCellId を null に戻す
+      // 経路 (line 386 false-branch、line 389)
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      expect(container.querySelector("textarea")).not.toBeNull();
+      const outside = document.createElement("div");
+      document.body.appendChild(outside);
+      fireEvent.mouseDown(outside);
+      expect(container.querySelector("textarea")).toBeNull();
+      outside.remove();
+    });
   });
 
   describe("ドラッグハンドル", () => {

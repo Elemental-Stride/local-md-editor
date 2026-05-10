@@ -101,5 +101,15 @@ describe("useActiveBlock", () => {
         expect.objectContaining({ type: "edit" }),
       );
     });
+
+    test("activeBlockId が doc に存在しない場合も移動しない", () => {
+      // setDoc updater 内 `if (idx === -1) return prev;` 真分岐
+      const { result } = renderHook(() =>
+        useActiveBlockWithDoc({ blocks: [para("a"), para("b")] })
+      );
+      act(() => result.current.setActiveBlockId("missing-id"));
+      act(() => result.current.moveActiveBlock(1));
+      expect(result.current.doc?.blocks.map((b) => b.id)).toEqual(["a", "b"]);
+    });
   });
 });

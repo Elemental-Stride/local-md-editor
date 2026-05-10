@@ -146,5 +146,34 @@ describe("CodeBlockView", () => {
       fireEvent.keyDown(wrapper, { key: "Enter" });
       expect(onInsertAfter).toHaveBeenCalled();
     });
+
+    test("Escape は editing=true から非編集モードへ抜ける契機にできる", () => {
+      // 編集モードで Escape → setEditing(false) → wrapper にフォーカス
+      const { container } = setup(code("js", "x"), { initiallyEditing: true });
+      fireEvent.keyDown(ta(), { key: "Escape" });
+      // textarea が消えれば editing=false に戻った証拠
+      expect(container.querySelector("textarea")).toBeNull();
+    });
+
+    test("ラッパーの focus / blur で selected state を切り替えられる", () => {
+      // onFocus / onBlur の `if (e.target === e.currentTarget)` 真分岐 (line 138, 141)
+      const { container } = setup(code("js", "x"));
+      const wrapper = container.firstChild as HTMLElement;
+      // happy-dom は outline をパース後 "var(...)" だけ残すなど挙動が緩いので
+      // outlineOffset で selected state を観測する
+      fireEvent.focus(wrapper);
+      expect(wrapper.style.outlineOffset).toBe("-2px");
+      fireEvent.blur(wrapper);
+      expect(wrapper.style.outlineOffset).toBe("");
+    });
+
+    test("非編集モードでも IME 変換中のキー入力は handler を発火させない", () => {
+      // wrapper の onKeyDown 内 `if (e.nativeEvent.isComposing) return;` 分岐
+      const { container, onDelete } = setup(code("js", "x"));
+      const wrapper = container.firstChild as HTMLElement;
+      wrapper.focus();
+      fireEvent.keyDown(wrapper, { key: "Backspace", isComposing: true });
+      expect(onDelete).not.toHaveBeenCalled();
+    });
   });
 });

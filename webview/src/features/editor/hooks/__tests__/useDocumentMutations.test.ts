@@ -37,7 +37,7 @@ const ordered = (id: string, source: string): OrderedItemBlock => ({
 
 // Editor.tsx と同じ配線で hook 群を組み合わせて useDocumentMutations を露出させる
 // テスト用 harness。docRef / focusRef は state の useEffect 同期に任せる。
-const useMutationsHarness = (initial: Document) => {
+const useMutationsHarness = (initial: Document | null) => {
   const [doc, setDoc] = useState<Document | null>(initial);
   const [focus, setFocus] = useState<FocusIntent | null>(null);
   const docRef = useRef<Document | null>(initial);
@@ -298,6 +298,75 @@ describe("useDocumentMutations", () => {
       const next: Document = { blocks: [para("y")] };
       act(() => result.current.applyBlockCommand(next));
       expect(result.current.focus).toBeNull();
+    });
+  });
+
+  // doc=null は init 未受信状態を表す。各 mutation は no-op で安全に終わるべき。
+  describe("docRef.current が null のときの guard", () => {
+    test("insertAfter は doc=null だと no-op にできる", () => {
+      const { result } = renderHook(() => useMutationsHarness(null));
+      act(() => result.current.insertAfter(para("any-id")));
+      expect(postSpy).not.toHaveBeenCalled();
+      expect(result.current.doc).toBeNull();
+    });
+
+    test("splitBlock は doc=null だと no-op にできる", () => {
+      const { result } = renderHook(() => useMutationsHarness(null));
+      act(() => result.current.splitBlock(para("any-id"), "before", "after"));
+      expect(postSpy).not.toHaveBeenCalled();
+    });
+
+    test("deleteAndFocusPrev は doc=null だと no-op にできる", () => {
+      const { result } = renderHook(() => useMutationsHarness(null));
+      act(() => result.current.deleteAndFocusPrev("any-id"));
+      expect(postSpy).not.toHaveBeenCalled();
+    });
+
+    test("reorder は doc=null だと no-op にできる", () => {
+      const { result } = renderHook(() => useMutationsHarness(null));
+      act(() => result.current.reorder("a", "b", "after"));
+      expect(postSpy).not.toHaveBeenCalled();
+    });
+
+    test("startWriting は doc=null でも空 paragraph を作れる (history は記録しない)", () => {
+      // `if (prev) history.recordCheckpoint(...)` の else 分岐
+      const { result } = renderHook(() => useMutationsHarness(null));
+      act(() => result.current.startWriting());
+      expect(result.current.doc?.blocks).toHaveLength(1);
+      expect(result.current.doc?.blocks[0].kind).toBe("paragraph");
+    });
+
+    test("applySearchReplacement は doc=null でも next を反映できる (history は記録しない)", () => {
+      const { result } = renderHook(() => useMutationsHarness(null));
+      const next: Document = { blocks: [para("z", "replaced")] };
+      act(() => result.current.applySearchReplacement(next));
+      expect(result.current.doc).toEqual(next);
+    });
+
+    test("applyBlockCommand は doc=null でも next を反映できる (history は記録しない)", () => {
+      const { result } = renderHook(() => useMutationsHarness(null));
+      const next: Document = { blocks: [para("y")] };
+      act(() => result.current.applyBlockCommand(next));
+      expect(result.current.doc).toEqual(next);
+    });
+  });
+
+  // insertAfter / splitBlock / deleteAndFocusPrev は対象 id が見つからなければ
+  // 元の doc を返して post も発火しない (idx === -1 分岐)。
+  describe("対象 id が見つからないときの guard", () => {
+    test("insertAfter は不在 block の場合 post を発火しない", () => {
+      const { result } = renderHook(() => useMutationsHarness({ blocks: [para("a")] }));
+      const before = postSpy.mock.calls.length;
+      // doc に存在しない id を持つ Block を渡す
+      act(() => result.current.insertAfter(para("missing")));
+      expect(postSpy.mock.calls.length).toBe(before);
+    });
+
+    test("splitBlock は不在 block の場合 post を発火しない", () => {
+      const { result } = renderHook(() => useMutationsHarness({ blocks: [para("a")] }));
+      const before = postSpy.mock.calls.length;
+      act(() => result.current.splitBlock(para("missing"), "x", "y"));
+      expect(postSpy.mock.calls.length).toBe(before);
     });
   });
 });

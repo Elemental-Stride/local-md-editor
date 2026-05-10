@@ -59,5 +59,33 @@ describe("parseInlines", () => {
         { type: "text", value: "a `unclosed code" },
       ]);
     });
+
+    test("閉じていない太字マーカーは plain text として扱える", () => {
+      // `if (close > i + 1)` の else 分岐 — `**` の閉じが無い
+      expect(parseInlines("**unclosed bold")).toEqual([
+        { type: "text", value: "**unclosed bold" },
+      ]);
+    });
+
+    test("閉じていない斜体マーカーは plain text として扱える", () => {
+      // `if (close > i)` (em) の else 分岐 — `*` の閉じが無い
+      expect(parseInlines("*unclosed em")).toEqual([
+        { type: "text", value: "*unclosed em" },
+      ]);
+    });
+
+    test("括弧の無い画像 markdown (![alt]) は plain text として扱える", () => {
+      // 画像の `if (m)` else 分岐 — `(url)` 部分が無い
+      expect(parseInlines("![alt]")).toEqual([
+        { type: "text", value: "![alt]" },
+      ]);
+    });
+
+    test("括弧の無いリンク markdown ([label]) は plain text として扱える", () => {
+      // リンクの `if (m)` else 分岐 — `(url)` 部分が無い
+      expect(parseInlines("[label]")).toEqual([
+        { type: "text", value: "[label]" },
+      ]);
+    });
   });
 });

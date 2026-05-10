@@ -42,6 +42,23 @@ describe("RenderedBlock", () => {
       const { container } = render(<RenderedBlock block={para("")} onChange={vi.fn()} />);
       expect(container.querySelector("p > br")).not.toBeNull();
     });
+
+    test("inlines が含まれていれば parseInlines を経由せず直接描画できる", () => {
+      // renderContent の `if (block.inlines.length > 0)` 真分岐 (line 28)
+      // pre-parsed inlines を渡し、本文に該当する text トークンを表示する
+      const block: Block = {
+        id: "p",
+        kind: "paragraph",
+        source: "ignored",
+        inlines: [
+          { type: "strong", children: [{ type: "text", value: "bold-from-inlines" }] },
+        ],
+      };
+      const { container } = render(<RenderedBlock block={block} onChange={vi.fn()} />);
+      // strong の中の "bold-from-inlines" が描画される。source の "ignored" は出ない
+      expect(container.querySelector("strong")?.textContent).toBe("bold-from-inlines");
+      expect(container.textContent).not.toContain("ignored");
+    });
   });
 
   describe("bulletItem", () => {

@@ -119,6 +119,25 @@ describe("SearchPanel", () => {
       fireEvent.click(screen.getByText("全て"));
       expect((onReplaceCommit.mock.calls[0][0] as Document).blocks[0].source).toBe("hi hi");
     });
+
+    test("「全て」はヒットを持たないブロックには手を入れない (replaceAll の !ms 分岐)", () => {
+      // 2 ブロック中 1 つだけにヒットがある状況: byBlock.get(b.id) === undefined →
+      // `if (!ms) return b;` (line 171) を経由する
+      const onReplaceCommit = vi.fn();
+      setup(
+        [para("a", "hello"), para("b", "untouched")],
+        { onReplaceCommit },
+      );
+      fireEvent.change(queryInput(), { target: { value: "hello" } });
+      fireEvent.click(screen.getByText("置換"));
+      fireEvent.change(screen.getByPlaceholderText("置換後"), {
+        target: { value: "hi" },
+      });
+      fireEvent.click(screen.getByText("全て"));
+      const result = onReplaceCommit.mock.calls[0][0] as Document;
+      expect(result.blocks[0].source).toBe("hi");
+      expect(result.blocks[1].source).toBe("untouched");
+    });
   });
 
   describe("キーボード操作", () => {
@@ -141,6 +160,38 @@ describe("SearchPanel", () => {
       const { onClose } = setup([para("a", "x")]);
       fireEvent.keyDown(queryInput(), { key: "Escape" });
       expect(onClose).toHaveBeenCalled();
+    });
+
+    test("マッチ 0 件で Enter を押しても落ちない (next の guard)", () => {
+      // matches.length === 0 → next() の early return 経路
+      setup([para("a", "hello")]);
+      fireEvent.change(queryInput(), { target: { value: "xyz" } });
+      // ヒット 0 件で Enter
+      fireEvent.keyDown(queryInput(), { key: "Enter" });
+      expect(screen.getByText("0 / 0")).toBeInTheDocument();
+    });
+
+    test("マッチ 0 件で Shift+Enter を押しても落ちない (prev の guard)", () => {
+      setup([para("a", "hello")]);
+      fireEvent.change(queryInput(), { target: { value: "xyz" } });
+      fireEvent.keyDown(queryInput(), { key: "Enter", shiftKey: true });
+      expect(screen.getByText("0 / 0")).toBeInTheDocument();
+    });
+
+    test("IME 変換中の Enter は next を呼ばない (検索 input)", () => {
+      // 検索 input の `if (e.nativeEvent.isComposing) return;` 分岐
+      setup([para("a", "hello hello")]);
+      fireEvent.change(queryInput(), { target: { value: "hello" } });
+      fireEvent.keyDown(queryInput(), { key: "Enter", isComposing: true });
+      // 変換中 → next が呼ばれないので 1 / 2 のまま
+      expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    });
+
+    test("検索 input で Enter / Escape 以外のキーは何もしない (no-op)", () => {
+      const { onClose } = setup([para("a", "hello")]);
+      fireEvent.change(queryInput(), { target: { value: "hello" } });
+      fireEvent.keyDown(queryInput(), { key: "a" });
+      expect(onClose).not.toHaveBeenCalled();
     });
   });
 

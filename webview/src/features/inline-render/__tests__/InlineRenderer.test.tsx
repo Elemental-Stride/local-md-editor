@@ -138,5 +138,26 @@ describe("renderInlines", () => {
       );
       expect(screen.getByText(/解決できませんでした/)).toBeInTheDocument();
     });
+
+    test("alt が空文字の remote 画像は url をテキストとして表示できる", () => {
+      // RemoteImage の `alt || url` で alt が "" の場合 url にフォールバックする分岐
+      render(
+        <>
+          {renderInlines([
+            { type: "image", url: "https://blocked.example/img.png", alt: "" },
+          ])}
+        </>,
+      );
+      expect(screen.getByText("https://blocked.example/img.png")).toBeInTheDocument();
+    });
+
+    test("alt が空文字の解決中 (相対パス) では url をテキストとして表示できる", () => {
+      // RelativeImage の解決中 `alt || url` else 分岐
+      resolvedValue = undefined;
+      render(
+        <>{renderInlines([{ type: "image", url: "./loading.png", alt: "" }])}</>,
+      );
+      expect(screen.getByText(/\.\/loading\.png/)).toBeInTheDocument();
+    });
   });
 });
