@@ -1,5 +1,9 @@
 # Local MD Editor
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.90.0-007ACC?logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/) [![GitHub Release](https://img.shields.io/github/v/release/Elemental-Stride/local-md-editor?color=blue)](https://github.com/Elemental-Stride/local-md-editor/releases)
+
+![Local First](https://img.shields.io/badge/Local%20First-%E2%9C%93-success) ![Privacy First](https://img.shields.io/badge/Privacy%20First-%E2%9C%93-success) ![No Telemetry](https://img.shields.io/badge/No%20Telemetry-%E2%9C%93-success) ![Offline Only](https://img.shields.io/badge/Offline%20Only-100%25-success)
+
 VS Code 向けのローカルファースト・プライバシー重視な Notion ライク Markdown エディタ。
 
 Markdown 互換性を保ちながら、ブロックベースの編集体験を提供します。
