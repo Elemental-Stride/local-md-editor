@@ -28,7 +28,11 @@ const InlineNode = ({ token }: { token: InlineToken; }): JSX.Element => {
           className="underline decoration-dotted underline-offset-2"
           style={{ color: "var(--vscode-textLink-foreground)" }}
           onClick={(e) => {
+            // preventDefault: webview 内 navigation を抑止。
+            // stopPropagation: 親の RenderedBlock ラッパが onClick で edit mode に
+            // 遷移してしまうため、リンククリック時はそこに伝播させない。
             e.preventDefault();
+            e.stopPropagation();
             post({ type: "openLink", url: token.url });
           }}
         >
