@@ -52,6 +52,8 @@ export default defineConfig({
 
         // === 混在ディレクトリ内の STANDARD 達成ファイル (個別) ===
         "webview/src/features/block-menu/transformBlock.ts": STANDARD,
+        "webview/src/features/block-list/BlockList.tsx": STANDARD,
+        "webview/src/features/editor/Editor.tsx": STANDARD,
         "webview/src/features/block/hooks/useBlockKeyHandler.ts": STANDARD,
         "webview/src/features/block/hooks/useImageDrop.ts": STANDARD,
 
