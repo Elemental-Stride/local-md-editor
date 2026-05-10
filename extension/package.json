@@ -44,7 +44,17 @@
         ],
         "priority": "default"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Local MD Editor",
+      "properties": {
+        "localMdEditor.compatibility.hideHtmlComments": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Hide HTML comments (e.g. `<!-- markdownlint-disable -->`) in the editor view. Comments remain in the file when saved, so other tools (markdownlint, etc.) continue to work."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node esbuild.config.mjs",

@@ -1,4 +1,8 @@
-import type { Document, ExtensionToWebviewMessage } from "@local-md-editor/shared";
+import {
+  DEFAULT_EDITOR_CONFIG,
+  type Document,
+  type ExtensionToWebviewMessage,
+} from "@local-md-editor/shared";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -42,7 +46,7 @@ const para = (id: string, source: string): Document["blocks"][number] => ({
 
 const sendInit = (doc: Document): void => {
   if (!messageHandler) throw new Error("messageHandler not registered");
-  act(() => messageHandler!({ type: "init", document: doc }));
+  act(() => messageHandler!({ type: "init", document: doc, config: DEFAULT_EDITOR_CONFIG }));
 };
 
 // when: <Editor /> をマウントして orchestration が動くか確認する

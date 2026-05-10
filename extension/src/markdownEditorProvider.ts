@@ -1,5 +1,6 @@
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from "@local-md-editor/shared";
 import * as vscode from "vscode";
+import { onEditorConfigChanged, readEditorConfig } from "./config.js";
 import { documentToMarkdown, markdownToDocument } from "./markdown.js";
 
 export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
@@ -66,8 +67,16 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
     };
 
     const sendInit = (): void => {
-      post({ type: "init", document: markdownToDocument(document.getText()) });
+      post({
+        type: "init",
+        document: markdownToDocument(document.getText()),
+        config: readEditorConfig(),
+      });
     };
+
+    const configSub = onEditorConfigChanged((config) => {
+      post({ type: "configChanged", config });
+    });
 
     // 同じ change event が複数 listener / 内部経路から二重発火されるケースを
     // 観測している。version + text の組がさっき処理したものと同じなら no-op。
@@ -159,6 +168,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
     const dispose = (): void => {
       docChange.dispose();
       msgSub.dispose();
+      configSub.dispose();
       pendingTexts.clear();
     };
     this.activeSessions.set(uriKey, dispose);

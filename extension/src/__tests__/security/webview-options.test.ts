@@ -40,6 +40,10 @@ vi.mock("vscode", () => {
       applyEdit: vi.fn(async () => true),
       // テストごとに mockReturnValue で workspace 有無を切り替える。
       getWorkspaceFolder: vi.fn(() => null),
+      onDidChangeConfiguration: () => ({ dispose: vi.fn() }),
+      getConfiguration: () => ({
+        get: <T>(_key: string, defaultValue: T): T => defaultValue,
+      }),
     },
     env: {
       openExternal: vi.fn(async () => true),

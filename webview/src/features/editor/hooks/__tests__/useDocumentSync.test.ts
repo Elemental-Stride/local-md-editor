@@ -1,4 +1,8 @@
-import type { Document, ExtensionToWebviewMessage } from "@local-md-editor/shared";
+import {
+  DEFAULT_EDITOR_CONFIG,
+  type Document,
+  type ExtensionToWebviewMessage,
+} from "@local-md-editor/shared";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { useBlockReconciliation } from "../useBlockReconciliation.js";
@@ -62,7 +66,9 @@ describe("useDocumentSync", () => {
       const onExternal = vi.fn();
       const { result } = renderHook(() => useSyncHarness(onExternal));
       const initial: Document = { blocks: [para("a")] };
-      act(() => messageHandler?.({ type: "init", document: initial }));
+      act(() =>
+        messageHandler?.({ type: "init", document: initial, config: DEFAULT_EDITOR_CONFIG })
+      );
       expect(result.current.doc).toEqual(initial);
       expect(onExternal).toHaveBeenCalledTimes(1);
     });
@@ -70,7 +76,9 @@ describe("useDocumentSync", () => {
     test("init 後に docRef も同じ doc を指せる", () => {
       const { result } = renderHook(() => useSyncHarness(vi.fn()));
       const initial: Document = { blocks: [para("a")] };
-      act(() => messageHandler?.({ type: "init", document: initial }));
+      act(() =>
+        messageHandler?.({ type: "init", document: initial, config: DEFAULT_EDITOR_CONFIG })
+      );
       expect(result.current.docRef.current).toEqual(initial);
     });
   });
@@ -97,7 +105,13 @@ describe("useDocumentSync", () => {
     test("prev が存在する場合 reuseIds で id を引き継げる", () => {
       const { result } = renderHook(() => useSyncHarness(vi.fn()));
       // 初期化
-      act(() => messageHandler?.({ type: "init", document: { blocks: [para("oldid")] } }));
+      act(() =>
+        messageHandler?.({
+          type: "init",
+          document: { blocks: [para("oldid")] },
+          config: DEFAULT_EDITOR_CONFIG,
+        })
+      );
       // update: 同 source の paragraph を別 id で送ってきても id は古い側を引き継ぐ
       act(() =>
         messageHandler?.({
