@@ -131,6 +131,12 @@ describe("BlockMenu", () => {
       expect(onClose).toHaveBeenCalled();
     });
 
+    test("Escape 以外のキーでは onClose を呼ばない (no-op 分岐)", () => {
+      const { onClose } = setup([para("a")], "a");
+      fireEvent.keyDown(window, { key: "a" });
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
     test("メニュー外で mousedown すると onClose を呼べる", () => {
       const outside = document.createElement("div");
       document.body.appendChild(outside);
@@ -138,6 +144,17 @@ describe("BlockMenu", () => {
       fireEvent.mouseDown(outside);
       expect(onClose).toHaveBeenCalled();
       outside.remove();
+    });
+
+    test("target が null の mousedown では onClose を呼ばない (defensive guard)", () => {
+      const { onClose } = setup([para("a")], "a");
+      // window へ target=null の MouseEvent を直接 dispatch する。
+      const evt = new Event("mousedown", { bubbles: true });
+      // target は通常 dispatch 後に自動設定されるが、null をセットすると early-return
+      // ガード (line 34-35) を通る
+      Object.defineProperty(evt, "target", { value: null, configurable: true });
+      window.dispatchEvent(evt);
+      expect(onClose).not.toHaveBeenCalled();
     });
   });
 

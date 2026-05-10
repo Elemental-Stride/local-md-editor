@@ -139,6 +139,34 @@ describe("BlockEditor", () => {
     });
   });
 
+  describe("ドラッグオーバー", () => {
+    test("dataTransfer.types に Files があれば preventDefault を呼べる", () => {
+      // happy-dom には DragEvent コンストラクタが無いため、Event + clientY で代替する。
+      // textarea の onDragOver は Files 系のドロップを許可するため preventDefault する。
+      setup(para("x"));
+      const textarea = ta();
+      const evt = new Event("dragover", { bubbles: true, cancelable: true });
+      Object.defineProperty(evt, "dataTransfer", {
+        value: { types: ["Files"] },
+        configurable: true,
+      });
+      const prevented = !textarea.dispatchEvent(evt);
+      expect(prevented).toBe(true);
+    });
+
+    test("dataTransfer.types に Files が無ければ preventDefault を呼ばない", () => {
+      setup(para("x"));
+      const textarea = ta();
+      const evt = new Event("dragover", { bubbles: true, cancelable: true });
+      Object.defineProperty(evt, "dataTransfer", {
+        value: { types: ["text/plain"] },
+        configurable: true,
+      });
+      const prevented = !textarea.dispatchEvent(evt);
+      expect(prevented).toBe(false);
+    });
+  });
+
   describe("オーバーレイ", () => {
     test("slashMenu.open=true で <SlashMenu> を描画できる", () => {
       const slashMenu = stubSlashMenu({

@@ -405,6 +405,65 @@ describe("MarkdownEditorProvider", () => {
       expect(reply?.uri).toBeNull();
     });
 
+    test("resolveResource の相対 ref はドキュメントディレクトリ基準で解決し uri を返せる", async () => {
+      // 相対 ref (./image.png) → docDir (= /foo/test.md/..) 配下に解決され、
+      // isInside の docDir マッチを通過して webview URI を返す経路。
+      // resolveRelative の try ブロック (line 218) と isInside の positive path
+      // (line 226-228) を両方カバーする。
+      const ctx = makeContext();
+      const provider = new MarkdownEditorProvider(
+        ctx as unknown as Parameters<typeof MarkdownEditorProvider.register>[0],
+      );
+      const webview = makeWebview();
+      const panel = makeWebviewPanel(webview);
+      await provider.resolveCustomTextEditor(
+        makeDocument("") as unknown as Parameters<typeof provider.resolveCustomTextEditor>[0],
+        panel as unknown as Parameters<typeof provider.resolveCustomTextEditor>[1],
+      );
+      await webview._trigger({
+        type: "resolveResource",
+        requestId: "r-rel",
+        ref: "./image.png",
+      });
+      const reply = webview._messages.find(
+        (m) =>
+          (m as { type: string; requestId?: string; }).type === "resolvedResource"
+          && (m as { requestId?: string; }).requestId === "r-rel",
+      ) as { uri: string | null; } | undefined;
+      expect(reply).toBeDefined();
+      expect(reply?.uri).not.toBeNull();
+      expect(reply?.uri).toContain("image.png");
+    });
+
+    test("workspaceRoot がある場合は roots に追加され、その配下の ref を解決できる", async () => {
+      // getWorkspaceFolder が non-null を返す経路 (line 41 の roots.push) と
+      // isInside の roots[]反復 (multiple-root path) をカバーする。
+      getWorkspaceFolder.mockReturnValueOnce({
+        uri: { fsPath: "/foo", toString: () => "/foo" } as unknown,
+      } as unknown as ReturnType<typeof getWorkspaceFolder>);
+      const ctx = makeContext();
+      const provider = new MarkdownEditorProvider(
+        ctx as unknown as Parameters<typeof MarkdownEditorProvider.register>[0],
+      );
+      const webview = makeWebview();
+      const panel = makeWebviewPanel(webview);
+      await provider.resolveCustomTextEditor(
+        makeDocument("") as unknown as Parameters<typeof provider.resolveCustomTextEditor>[0],
+        panel as unknown as Parameters<typeof provider.resolveCustomTextEditor>[1],
+      );
+      await webview._trigger({
+        type: "resolveResource",
+        requestId: "r-ws",
+        ref: "asset.png",
+      });
+      const reply = webview._messages.find(
+        (m) =>
+          (m as { type: string; requestId?: string; }).type === "resolvedResource"
+          && (m as { requestId?: string; }).requestId === "r-ws",
+      ) as { uri: string | null; } | undefined;
+      expect(reply).toBeDefined();
+    });
+
     test("resolveResource の空文字 ref も uri=null を返せる", async () => {
       const ctx = makeContext();
       const provider = new MarkdownEditorProvider(

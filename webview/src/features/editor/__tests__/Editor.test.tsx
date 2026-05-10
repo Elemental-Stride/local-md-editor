@@ -91,7 +91,47 @@ describe("Editor", () => {
     });
   });
 
+  describe("検索パネル", () => {
+    test("Cmd+F で SearchPanel を開けて、close で閉じられる", () => {
+      render(<Editor />);
+      sendInit({ blocks: [para("a", "hello")] });
+      // Cmd+F で開く
+      act(() => {
+        fireEvent.keyDown(window, { key: "f", metaKey: true });
+      });
+      expect(screen.getByPlaceholderText("検索")).toBeInTheDocument();
+      // 「閉じる」ボタンで閉じる
+      fireEvent.click(screen.getByText("閉じる"));
+      expect(screen.queryByPlaceholderText("検索")).toBeNull();
+    });
+  });
+
   describe("undo / redo (グローバルショートカット)", () => {
+    test("Cmd+Z は doc が null (init 未受信) のとき no-op", () => {
+      render(<Editor />);
+      // init を送らない → doc は null。post には ready のみ。
+      const before = postSpy.mock.calls.length;
+      act(() => {
+        fireEvent.keyDown(window, { key: "z", metaKey: true });
+      });
+      // edit メッセージは送られない
+      const editAfter = postSpy.mock.calls.slice(before).filter(
+        (c) => (c[0] as { type: string; }).type === "edit",
+      );
+      expect(editAfter).toHaveLength(0);
+    });
+
+    test("Cmd+Y は doc が null のとき no-op", () => {
+      render(<Editor />);
+      act(() => {
+        fireEvent.keyDown(window, { key: "y", ctrlKey: true });
+      });
+      const edits = postSpy.mock.calls.filter(
+        (c) => (c[0] as { type: string; }).type === "edit",
+      );
+      expect(edits).toHaveLength(0);
+    });
+
     test("Cmd+Z は履歴空のとき no-op (post の edit 送信が増えない)", () => {
       render(<Editor />);
       sendInit({ blocks: [para("a", "hi")] });

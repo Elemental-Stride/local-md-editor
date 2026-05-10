@@ -113,6 +113,32 @@ describe("useImageDrop", () => {
     });
   });
 
+  describe("editing 中のキャレット位置への挿入", () => {
+    test("editing=true + ta.selectionStart/End がキャレット位置として使われる", async () => {
+      // editing=true かつ taRef.current が textarea を指す状態を構築する。
+      // キャレットを 2 (= "te" の直後) に置いて、その位置に画像 markdown を
+      // 挿入できることを確認する
+      const onChange = vi.fn();
+      const ta = document.createElement("textarea");
+      ta.value = "text";
+      ta.setSelectionRange(2, 2);
+      const taRef = { current: ta } as React.RefObject<HTMLTextAreaElement>;
+      const { result } = renderHook(() =>
+        useImageDrop({ block: para("text"), onChange, taRef, editing: true })
+      );
+      const e = {
+        dataTransfer: makeDataTransfer([makeImageFile("c.png")]),
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      } as unknown as React.DragEvent<HTMLTextAreaElement>;
+      result.current.onTextareaDrop(e);
+      await waitFor(() => expect(onChange).toHaveBeenCalled());
+      const updated = onChange.mock.calls[0][0] as Block;
+      // 元の "text" のキャレット位置 2 ("te" の直後) に挿入される
+      expect(updated.source).toMatch(/^te!\[c\]\([^)]+\)xt$/);
+    });
+  });
+
   describe("空ファイル", () => {
     test("ドロップされたファイルが 0 件なら何もしない", () => {
       const { onChange, drop } = setup(para("text"), false);

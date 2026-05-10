@@ -86,6 +86,19 @@ describe("useBlockBuilders", () => {
     test("paragraph 等のマーカーを持たないブロックは content をそのまま返せる", () => {
       expect(useBuilders().sourceWithContent(para("old"), "new")).toBe("new");
     });
+
+    test("マーカー無し orderedItem は indent / marker をデフォルトで補えできる", () => {
+      // sourceWithContent の orderedItem ケース: 正規表現がマッチしない source の場合、
+      // indent は indentOf へ、marker は "1." にフォールバック (lines 26-27)
+      const malformed = ordered("plain content");
+      expect(useBuilders().sourceWithContent(malformed, "new")).toBe("1. new");
+    });
+
+    test("インデント付きでマーカーが無い orderedItem は indentOf のスペースを保てる", () => {
+      // m === null だが indentOf はスペースを返す (line 26 fallback の indent ケース)
+      const malformed = ordered("    plain");
+      expect(useBuilders().sourceWithContent(malformed, "new")).toBe("    1. new");
+    });
   });
 
   describe("nextOrderedMarker", () => {

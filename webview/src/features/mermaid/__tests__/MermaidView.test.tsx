@@ -66,5 +66,51 @@ describe("MermaidView", () => {
       await waitFor(() => expect(screen.getByText(/構文エラー/)).toBeInTheDocument());
       expect(screen.getByText(/syntax bad/)).toBeInTheDocument();
     });
+
+    test("Error 以外の reject 値も文字列化してエラーとして表示できる", async () => {
+      renderSpy.mockRejectedValue("plain string error");
+      render(<MermaidView value="bad" />);
+      await waitFor(() => expect(screen.getByText(/plain string error/)).toBeInTheDocument());
+    });
+
+    test("value が変わると古い render の結果は破棄される (token mismatch path)", async () => {
+      // 1 回目の render を遅延させて、その間に value を更新する
+      let resolveFirst!: (v: { svg: string; }) => void;
+      renderSpy.mockImplementationOnce(
+        () => new Promise<{ svg: string; }>((res) => (resolveFirst = res)),
+      );
+      renderSpy.mockResolvedValueOnce({ svg: '<svg data-testid="second"></svg>' });
+
+      const { container, rerender } = render(<MermaidView value="first" />);
+      // 2 回目を発行 (token 進む)
+      rerender(<MermaidView value="second" />);
+      // 2 回目の結果が描画されるのを待つ
+      await waitFor(() => expect(container.querySelector("[data-testid='second']")).not.toBeNull());
+      // 1 回目をようやく resolve しても、token が古いため描画は変わらない
+      resolveFirst({ svg: '<svg data-testid="first"></svg>' });
+      // 念のため tick 進めても first は描画されない
+      await new Promise((r) => setTimeout(r, 0));
+      expect(container.querySelector("[data-testid='first']")).toBeNull();
+    });
+  });
+
+  describe("クリーンアップ", () => {
+    test("アンマウント時に body 直下の stray 要素を取り除く", async () => {
+      renderSpy.mockResolvedValue({ svg: "<svg></svg>" });
+      const { unmount } = render(<MermaidView value="graph TD; A-->B" />);
+      await waitFor(() => expect(renderSpy).toHaveBeenCalled());
+      // mermaid.render が body に置く可能性のある stray 要素を手動で配置 (cleanup の効果を観測)
+      const renderId = (renderSpy.mock.calls[0]?.[0] as string) ?? "mmd-";
+      const stray = document.createElement("div");
+      stray.id = renderId;
+      document.body.appendChild(stray);
+      const strayD = document.createElement("div");
+      strayD.id = `d${renderId}`;
+      document.body.appendChild(strayD);
+      // アンマウントで cleanup が走り、stray が消える
+      unmount();
+      expect(document.getElementById(renderId)).toBeNull();
+      expect(document.getElementById(`d${renderId}`)).toBeNull();
+    });
   });
 });

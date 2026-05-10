@@ -101,6 +101,28 @@ describe("LinkModal", () => {
       fireEvent.keyDown(urlInput(), { key: "Enter", isComposing: true });
       expect(onApply).not.toHaveBeenCalled();
     });
+
+    test("label input で IME 変換中の Enter も submit を発火させない", () => {
+      const { onApply } = setup({ defaultUrl: "https://e.x" });
+      fireEvent.keyDown(labelInput(), { key: "Enter", isComposing: true });
+      expect(onApply).not.toHaveBeenCalled();
+    });
+
+    test("url input で Enter / Escape 以外のキーは何もしない (no-op)", () => {
+      // else if (Escape) の false 分岐を観測する: onKeyDown は通っているが
+      // submit/onCancel いずれも発火しない
+      const { onApply, onCancel } = setup({ defaultUrl: "https://e.x" });
+      fireEvent.keyDown(urlInput(), { key: "a" });
+      expect(onApply).not.toHaveBeenCalled();
+      expect(onCancel).not.toHaveBeenCalled();
+    });
+
+    test("label input で Enter / Escape 以外のキーは何もしない (no-op)", () => {
+      const { onApply, onCancel } = setup({ defaultUrl: "https://e.x" });
+      fireEvent.keyDown(labelInput(), { key: "x" });
+      expect(onApply).not.toHaveBeenCalled();
+      expect(onCancel).not.toHaveBeenCalled();
+    });
   });
 
   describe("キャンセルボタン", () => {

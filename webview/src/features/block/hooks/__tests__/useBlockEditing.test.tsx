@@ -184,6 +184,41 @@ describe("useBlockEditing", () => {
       expect(ta.style.height).toMatch(/^\d+px$|^auto$/);
     });
 
+    test("initiallyEditing=true 直後の RAF コールバックは textarea にカーソルを置ける (cursor='end')", async () => {
+      // useEffect 内の requestAnimationFrame 経路 (lines 39-44) を観測する。
+      // RAF を 1 フレーム進めて、再度カーソルが末尾に置かれることを確認。
+      const { container } = render(
+        <Harness
+          block={{ ...para("foo"), source: "foo" }}
+          initiallyEditing
+          initialCursor="end"
+        />,
+      );
+      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
+      // RAF の 1 フレームを待機
+      await act(async () => {
+        await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+      });
+      // pos = ta.value.length
+      expect(ta.selectionStart).toBe("foo".length);
+    });
+
+    test("initiallyEditing=true + cursor='start' の RAF コールバックは textarea の先頭にカーソルを置ける", async () => {
+      const { container } = render(
+        <Harness
+          block={{ ...para("bar"), source: "bar" }}
+          initiallyEditing
+          initialCursor="start"
+        />,
+      );
+      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
+      await act(async () => {
+        await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+      });
+      // RAF 経路は cursor === "start" なら pos=0
+      expect(ta.selectionStart).toBe(0);
+    });
+
     test("enteredViaClick=true の状態で再 effect が走ると末尾にカーソルを置ける", () => {
       // クリックで編集に入った想定: 最初は editing=false, click 後に
       // enteredViaClick.current=true が立ち、setEditing(true) で再 effect

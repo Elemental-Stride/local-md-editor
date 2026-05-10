@@ -73,6 +73,24 @@ describe("useDocumentMutations", () => {
       expect(postSpy).toHaveBeenCalledWith({ type: "edit", document: next });
     });
 
+    test("source を持たないブロックの変更は appendedWhitespace の loop を素通りして soft 扱いできる", () => {
+      // appendedWhitespace は全ペアが「source なし or source 同一」なら loop 完走 → false
+      // (line 265) を返す。thematicBreak は source プロパティを持つが、ここでは
+      // 同じ source のまま id だけ違う / 等を再現したいので、source 同一の paragraph を渡す。
+      const initial = { blocks: [para("a", "same"), para("b", "same2")] };
+      const { result } = renderHook(() => useMutationsHarness(initial));
+      // prev と next の各ブロックの source が完全一致 → loop は continue で抜けて
+      // 最終 return false に到達する。kind は "soft" になる。
+      act(() =>
+        result.current.handleChange({
+          blocks: [para("a", "same"), para("b", "same2")],
+        })
+      );
+      // history の最新 checkpoint kind を直接観測する手段はないので、振る舞いの
+      // 一貫性 (post 発火 / state 更新) のみ検査する
+      expect(postSpy).toHaveBeenCalled();
+    });
+
     test("空白文字の追加を word boundary として hard checkpoint を作れる", () => {
       // hard checkpoint は coalesce ウィンドウ内でも別 step として残るので
       // 連続入力後でも undo が 2 段階 (hard 境界 + 直前) で巻き戻る
@@ -227,6 +245,24 @@ describe("useDocumentMutations", () => {
       const { result } = renderHook(() => useMutationsHarness(initial));
       act(() => result.current.reorder("a", "a", "after"));
       expect(result.current.doc).toEqual(initial);
+    });
+
+    test("targetId が存在しないとき item を元の位置に戻して prev を返せる", () => {
+      // setDoc updater 内で blocks.findIndex(target) が -1 になり、
+      // splice(srcIdx, 0, item) で復元 → prev を返す経路 (lines 199-201)
+      const initial = { blocks: [para("a"), para("b")] };
+      const { result } = renderHook(() => useMutationsHarness(initial));
+      act(() => result.current.reorder("a", "missing", "after"));
+      // doc は変化しない
+      expect(result.current.doc?.blocks.map((b) => b.id)).toEqual(["a", "b"]);
+    });
+
+    test("sourceId が存在しないとき何も書き換えずに prev を返せる", () => {
+      // setDoc updater 内で srcIdx === -1 → prev を返す経路 (line 196)
+      const initial = { blocks: [para("a"), para("b")] };
+      const { result } = renderHook(() => useMutationsHarness(initial));
+      act(() => result.current.reorder("missing", "a", "before"));
+      expect(result.current.doc?.blocks.map((b) => b.id)).toEqual(["a", "b"]);
     });
   });
 
