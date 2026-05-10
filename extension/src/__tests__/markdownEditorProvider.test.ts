@@ -60,6 +60,10 @@ vi.mock("vscode", () => {
       },
       applyEdit: mocks.applyEdit,
       getWorkspaceFolder: mocks.getWorkspaceFolder,
+      onDidChangeConfiguration: () => ({ dispose: vi.fn() }),
+      getConfiguration: () => ({
+        get: <T>(_key: string, defaultValue: T): T => defaultValue,
+      }),
     },
     env: {
       openExternal: mocks.openExternal,

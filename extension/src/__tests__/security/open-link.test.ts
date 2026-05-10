@@ -43,6 +43,10 @@ vi.mock("vscode", () => {
       onDidChangeTextDocument: () => ({ dispose: vi.fn() }),
       applyEdit: vi.fn(async () => true),
       getWorkspaceFolder: vi.fn(() => null),
+      onDidChangeConfiguration: () => ({ dispose: vi.fn() }),
+      getConfiguration: () => ({
+        get: <T>(_key: string, defaultValue: T): T => defaultValue,
+      }),
     },
     env: {
       openExternal: vi.fn(async () => true),

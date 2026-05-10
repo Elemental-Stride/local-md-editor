@@ -3,6 +3,7 @@ import { type DragEvent, useState } from "react";
 import type { FocusIntent } from "../../types/document.js";
 import { BlockMenu, type BlockMenuApply } from "../block-menu/index.js";
 import { BlockView } from "../block/index.js";
+import { isHiddenBlock, useEditorConfig } from "../config/index.js";
 
 type Props = {
   document: Document;
@@ -46,6 +47,7 @@ export const BlockList = (
   const [dragId, setDragId] = useState<BlockId | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const menuBlock = menu ? document.blocks.find((b) => b.id === menu.id) ?? null : null;
+  const editorConfig = useEditorConfig();
 
   const updateBlock = (next: Block): void => {
     onChange({
@@ -101,6 +103,7 @@ export const BlockList = (
         />
       )}
       {document.blocks.map((block) => {
+        if (isHiddenBlock(block, editorConfig)) return null;
         const showBefore = dropAt?.id === block.id && dropAt.pos === "before";
         const showAfter = dropAt?.id === block.id && dropAt.pos === "after";
         const isMatch = searchMatches.has(block.id);
