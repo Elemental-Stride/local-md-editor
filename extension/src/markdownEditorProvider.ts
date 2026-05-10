@@ -136,6 +136,10 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           return;
         }
         case "openLink": {
+          // Markdown 内のリンクとして妥当な http(s)/mailto のみ許可する。
+          // javascript: / file: / vscode: / data: 等を openExternal に渡すと
+          // 予期しないハンドラ起動 (RCE / 情報露出) の経路になり得るため拒否。
+          if (!ALLOWED_LINK_SCHEME.test(raw.url)) return;
           await vscode.env.openExternal(vscode.Uri.parse(raw.url));
           return;
         }
@@ -211,9 +215,18 @@ const makeNonce = (): string => {
 
 // `ref`（相対パスまたは既に絶対化された URI 文字列）をドキュメント
 // ディレクトリ基準で解決する。webview 経由で読み込みたくないもの
-// （data URL、http(s)、ワークスペース外の絶対パスなど）には null を返す。
+// （data URL、http(s)、javascript:、mailto: 等のスキーム付き URI）には
+// null を返す。スキームは RFC 3986 の syntax (`scheme = ALPHA *( ALPHA /
+// DIGIT / "+" / "-" / "." )`) に準じて検出するため、`://` を伴わない
+// `javascript:alert(1)` も拒否できる。
+const SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
+
+// openLink で openExternal に渡してよい URL のホワイトリスト。
+// http(s) は `://` を要求し、mailto は単純コロン形式を許可する。
+const ALLOWED_LINK_SCHEME = /^(?:https?:\/\/|mailto:)/i;
+
 const resolveRelative = (docDir: vscode.Uri, ref: string): vscode.Uri | null => {
-  if (ref === "" || ref.startsWith("data:") || /^[a-z]+:\/\//i.test(ref)) return null;
+  if (ref === "" || SCHEME_PATTERN.test(ref)) return null;
   try {
     return vscode.Uri.joinPath(docDir, ref);
   } catch {
