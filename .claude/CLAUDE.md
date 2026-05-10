@@ -108,6 +108,17 @@ Markdown <-> Block UI <-> Markdown
 
 小さく、実績あるライブラリを優先。
 
+### Supply Chain Defense
+
+npm 供給網攻撃 (worm 系・compromised maintainer 等) に対する明示的防御:
+
+- `minimumReleaseAge`: 公開後 7 日経たないバージョンはインストール拒否 (`pnpm-workspace.yaml`)
+- `frozenLockfile`: lockfile 不整合があれば install を失敗 (`pnpm-workspace.yaml`)
+- `onlyBuiltDependencies`: postinstall スクリプトを許可リスト方式で deny-by-default (`pnpm-workspace.yaml`)
+- `packageManager` ピン: corepack 経由で pnpm バージョンを固定 (`package.json`)
+
+`onlyBuiltDependencies` への追加は postinstall スクリプト実行を明示的に許可することなので、PR レビューで必ず妥当性を確認すること。
+
 ---
 
 ## コーディング方針
