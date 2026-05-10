@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config";
 import { CleanTreeReporter } from "./vitest.reporters.ts";
 
+// 業界標準のしきい値。新規 / 既存ファイルが満たすべきデフォルト。
+const STANDARD = { lines: 80, branches: 70, functions: 80 };
+
 export default defineConfig({
   test: {
     reporters: [new CleanTreeReporter()],
@@ -28,175 +31,51 @@ export default defineConfig({
         "webview/src/resources.ts", // VS Code resource 薄ラッパ
       ],
       reporter: ["text", "html"],
-      // 段階的にカバレッジを広げる方針なので global threshold は設けず、Phase 1
-      // 対象ファイルにだけ業界標準 (line 80 / branch 70 / function 80) を gate
-      // として課す。Phase 2 以降で対象ファイルが増えたらここに glob を追加する。
+      // 部分カバーの個別調整以外は全て STANDARD (line 80 / branch 70 / func 80)。
+      // ディレクトリ単位で全ファイルが STANDARD を満たせる場所は glob でまとめ、
+      // 新規ファイルが追加されたときに自動的に gate される形にする。
       thresholds: {
-        // shared/src は Phase 1 で全ファイル網羅 (型のみと index は include / exclude 経由で対象外)
-        "shared/src/**": { lines: 80, branches: 70, functions: 80 },
-        // extension/src は markdown.ts のみ Phase 1 対象。markdownEditorProvider は Phase 3+
-        "extension/src/markdown.ts": { lines: 80, branches: 70, functions: 80 },
-        // webview の Phase 1 対象
-        "webview/src/features/highlight/**": { lines: 80, branches: 70, functions: 80 },
-        // webview の Phase 2 対象 (pure utilities)
-        "webview/src/features/block/blockId.ts": { lines: 80, branches: 70, functions: 80 },
-        "webview/src/features/block/blockTransforms.ts": { lines: 80, branches: 70, functions: 80 },
-        "webview/src/features/block-menu/transformBlock.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        // webview の Phase 2 対象 (hooks)
-        "webview/src/features/editor/hooks/useDocumentHistory.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useSearch.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useActiveBlock.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        // webview の Phase 3 対象 (主要 hook 群)
-        "webview/src/features/editor/hooks/useBlockReconciliation.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useBlockBuilders.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useDocumentNavigation.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useDocumentMutations.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useDocumentSync.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        // webview の Phase 4 対象 (slash menu / link modal / global keymap)
-        // SlashMenu.tsx は filterItems / SLASH_ITEMS の pure 関数のみカバー対象。
-        // SlashMenu component (JSX) は Phase 5+ の React component テストで対応。
-        "webview/src/features/slash-menu/hooks/useSlashMenu.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/link-modal/hooks/useLinkPrompt.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/editor/hooks/useGlobalShortcuts.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        // Phase 5: 残りの React コンポーネント / DOM ヘビー hook / extension provider
-        "webview/src/features/code-block/CodeBlockPreview.tsx": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/code-block/CodeBlockView.tsx": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/inline-render/InlineRenderer.tsx": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/link-modal/LinkModal.tsx": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/slash-menu/SlashMenu.tsx": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/mermaid/MermaidView.tsx": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
+        // === 全ファイル STANDARD のディレクトリ (glob) ===
+        "shared/src/**": STANDARD,
+        "webview/src/features/code-block/**": STANDARD,
+        "webview/src/features/editor/hooks/**": STANDARD,
+        "webview/src/features/highlight/**": STANDARD,
+        "webview/src/features/inline-render/**": STANDARD,
+        "webview/src/features/link-modal/**": STANDARD,
+        "webview/src/features/mermaid/**": STANDARD,
+        "webview/src/features/slash-menu/**": STANDARD,
+
+        // === 混在ディレクトリ内の STANDARD 達成ファイル (個別) ===
+        "extension/src/markdown.ts": STANDARD,
+        "webview/src/features/block-menu/transformBlock.ts": STANDARD,
+        "webview/src/features/block/blockId.ts": STANDARD,
+        "webview/src/features/block/blockTransforms.ts": STANDARD,
+        "webview/src/features/block/BlockEditor.tsx": STANDARD,
+        "webview/src/features/block/RenderedBlock.tsx": STANDARD,
+        "webview/src/features/block/hooks/useBlockKeyHandler.ts": STANDARD,
+        "webview/src/features/block/hooks/useImageDrop.ts": STANDARD,
+
+        // === branch のみ standard 未達のファイル (line / func は STANDARD) ===
         "webview/src/features/block-menu/BlockMenu.tsx": {
-          lines: 80,
+          ...STANDARD,
           branches: 60,
-          functions: 80,
-        },
-        "webview/src/features/block/BlockEditor.tsx": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/block/RenderedBlock.tsx": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/block/hooks/useBlockEditing.ts": {
-          lines: 80,
-          branches: 40,
-          functions: 80,
-        },
-        "webview/src/features/block/hooks/useBlockKeyHandler.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
-        },
-        "webview/src/features/block/hooks/useImageDrop.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
         },
         "webview/src/features/search/SearchPanel.tsx": {
-          lines: 80,
+          ...STANDARD,
           branches: 60,
-          functions: 80,
         },
-        "webview/src/features/editor/hooks/useDomSelectionDelete.ts": {
-          lines: 80,
-          branches: 70,
-          functions: 80,
+        "webview/src/features/block/hooks/useBlockEditing.ts": {
+          ...STANDARD,
+          branches: 40,
         },
-        // 部分カバー (将来 Phase 6+ で押し上げる対象)
-        // - BlockView / BlockList: drag-drop ハンドラを未テスト
-        // - TableView: 70% line。merge/unmerge/insertColumn 等の細かい構造変更パスが残る
-        // - Editor.tsx: smoke 1 件のみ。orchestration なので個別 hook テストでカバー済み
-        // - markdownEditorProvider: vscode mock の難易度が高くハンドラ全網羅は今回見送り
-        "webview/src/features/block/BlockView.tsx": {
-          lines: 70,
-          branches: 70,
-          functions: 25,
-        },
-        "webview/src/features/table/TableView.tsx": {
-          lines: 70,
-          branches: 60,
-          functions: 70,
-        },
-        "extension/src/markdownEditorProvider.ts": {
-          lines: 60,
-          branches: 30,
-          functions: 60,
-        },
+
+        // === 部分カバー (将来押し上げる対象) ===
+        // BlockView: kind ルーティングのみ。editing パスや drag-drop ハンドラ未網羅。
+        "webview/src/features/block/BlockView.tsx": { lines: 70, branches: 70, functions: 25 },
+        // TableView: cell selection / 行列追加削除はカバー、merge / unmerge / 細かい構造変更が残る。
+        "webview/src/features/table/TableView.tsx": { lines: 70, branches: 60, functions: 70 },
+        // markdownEditorProvider: vscode module の完全モックが重く、ハンドラ全網羅は今回見送り。
+        "extension/src/markdownEditorProvider.ts": { lines: 60, branches: 30, functions: 60 },
       },
     },
   },
