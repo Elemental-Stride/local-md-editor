@@ -36,14 +36,24 @@ describe("CodeBlockPreview", () => {
       expect(screen.getByText("空のコードブロック")).toBeInTheDocument();
     });
 
-    test("<pre> をクリックすると onEnterEdit を呼べる", () => {
+    test("<pre> をダブルクリックすると onEnterEdit を呼べる", () => {
       const onEnterEdit = vi.fn();
       const { container } = render(
         <CodeBlockPreview block={code("js", "x")} onEnterEdit={onEnterEdit} />,
       );
       const pre = container.querySelector("pre");
-      if (pre) fireEvent.click(pre);
+      if (pre) fireEvent.doubleClick(pre);
       expect(onEnterEdit).toHaveBeenCalled();
+    });
+
+    test("シングルクリックでは編集へ入らず選択を残せる", () => {
+      const onEnterEdit = vi.fn();
+      const { container } = render(
+        <CodeBlockPreview block={code("js", "const x = 1")} onEnterEdit={onEnterEdit} />,
+      );
+      const pre = container.querySelector("pre");
+      if (pre) fireEvent.click(pre);
+      expect(onEnterEdit).not.toHaveBeenCalled();
     });
   });
 
@@ -60,15 +70,15 @@ describe("CodeBlockPreview", () => {
       expect(stub.textContent).toBe("graph TD; A-->B");
     });
 
-    test("Mermaid 表示部分をクリックすると onEnterEdit を呼べる", () => {
+    test("Mermaid 表示部分をダブルクリックすると onEnterEdit を呼べる", () => {
       const onEnterEdit = vi.fn();
       const { container } = render(
         <CodeBlockPreview block={code("mermaid", "g")} onEnterEdit={onEnterEdit} />,
       );
-      // 親 div (cursor-text + title) が onClick を持つ
-      const wrapper = container.querySelector('[title="クリックして編集"]');
+      // 親 div (cursor-text + title) が onDoubleClick を持つ
+      const wrapper = container.querySelector('[title="ダブルクリックして編集"]');
       expect(wrapper).not.toBeNull();
-      if (wrapper) fireEvent.click(wrapper);
+      if (wrapper) fireEvent.doubleClick(wrapper);
       expect(onEnterEdit).toHaveBeenCalled();
     });
   });

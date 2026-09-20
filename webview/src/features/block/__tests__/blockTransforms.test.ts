@@ -5,6 +5,7 @@ import {
   indentStyle,
   orderedMarker,
   reclassify,
+  splitAtEmptyLine,
   toggleTaskSource,
   withDisplayValue,
 } from "../blockTransforms.js";
@@ -124,6 +125,37 @@ describe("withDisplayValue", () => {
 
     test("paragraph は display をそのまま返せる", () => {
       expect(withDisplayValue(para("old"), "new")).toBe("new");
+    });
+  });
+});
+
+// when: splitAtEmptyLine(text, cursor) を呼ぶ
+describe("splitAtEmptyLine", () => {
+  describe("キャレット行が空のとき", () => {
+    test("末尾の空行では空行を生んだ改行ごと落として前半を返せる", () => {
+      expect(splitAtEmptyLine("a\n", 2)).toEqual({ before: "a", after: "" });
+    });
+
+    test("中間の空行では前半と後続行に分割できる", () => {
+      expect(splitAtEmptyLine("a\n\nb", 2)).toEqual({ before: "a", after: "b" });
+    });
+
+    test("先頭が空行のときは落とす改行が無く前半は空文字になる", () => {
+      expect(splitAtEmptyLine("\nb", 0)).toEqual({ before: "", after: "b" });
+    });
+
+    test("全体が空文字のときは前後とも空文字を返せる", () => {
+      expect(splitAtEmptyLine("", 0)).toEqual({ before: "", after: "" });
+    });
+  });
+
+  describe("キャレット行に文字があるとき", () => {
+    test("行末にキャレットがあっても null を返す", () => {
+      expect(splitAtEmptyLine("abc", 3)).toBeNull();
+    });
+
+    test("行頭にキャレットがあっても null を返す", () => {
+      expect(splitAtEmptyLine("a\nbc", 2)).toBeNull();
     });
   });
 });

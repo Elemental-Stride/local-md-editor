@@ -69,6 +69,26 @@ export const withDisplayValue = (block: Block, display: string): string => {
   }
 };
 
+// キャレット行が空なら、その空行を取り除いた前半と後続行に分けて返す。
+// 空行でなければ null を返し、呼び出し側は通常の改行として扱う。
+// 引用ブロックで「空行 + Enter」に引用を抜けさせるために使う。
+export const splitAtEmptyLine = (
+  text: string,
+  cursor: number,
+): { before: string; after: string; } | null => {
+  // cursor 0 で lastIndexOf に -1 を渡すと index 0 の改行を拾ってしまうため、
+  // 先頭は行頭として即断する。
+  const lineStart = cursor === 0 ? 0 : text.lastIndexOf("\n", cursor - 1) + 1;
+  const lineEnd = text.indexOf("\n", cursor);
+  const end = lineEnd === -1 ? text.length : lineEnd;
+  if (lineStart !== end) return null;
+  return {
+    // 空行を生んだ改行ごと落とす。先頭行が空の場合は落とす改行が無い。
+    before: text.slice(0, Math.max(0, lineStart - 1)),
+    after: lineEnd === -1 ? "" : text.slice(lineEnd + 1),
+  };
+};
+
 // 編集後の `source` を見て block の kind を再判定する。文脈依存の markdown
 // ルール（リストネスト・見出しレベルなど）はドキュメント全体の再パースで
 // 担保されるため、ここではトップレベルの marker パターンだけを見る。

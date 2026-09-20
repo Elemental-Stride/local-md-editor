@@ -11,6 +11,7 @@ import { useDocumentNavigation } from "./hooks/useDocumentNavigation.js";
 import { useDocumentSync } from "./hooks/useDocumentSync.js";
 import { useDomSelectionDelete } from "./hooks/useDomSelectionDelete.js";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts.js";
+import { useMarkdownCopy } from "./hooks/useMarkdownCopy.js";
 import { useSearch } from "./hooks/useSearch.js";
 
 // エディタ全体のオーケストレーション。9 つの hook を配線し、状態を JSX に
@@ -66,6 +67,7 @@ export const Editor = (): JSX.Element => {
     redo,
   });
   useDomSelectionDelete({ deleteBlocks: mutations.deleteBlocks });
+  useMarkdownCopy({ docRef });
 
   if (!doc) {
     return <div className="p-6 opacity-60">Loading…</div>;

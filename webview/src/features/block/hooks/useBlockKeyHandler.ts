@@ -1,7 +1,7 @@
 import type { Block, BlockId } from "@local-md-editor/shared";
 import type { KeyboardEvent, RefObject } from "react";
 import type { SlashMenuController } from "../../slash-menu/index.js";
-import { contentOf } from "../blockTransforms.js";
+import { contentOf, splitAtEmptyLine } from "../blockTransforms.js";
 
 type Args = {
   block: Block;
@@ -81,6 +81,28 @@ export const useBlockKeyHandler = (
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       onInsertAfter(block);
+      return;
+    }
+
+    // 引用ブロックの Enter は通常は改行だが、空行で押されたときはその空行を
+    // 捨てて後続を段落として切り出す（Notion 的な「引用を抜ける」操作）。
+    if (
+      e.key === "Enter"
+      && !e.shiftKey
+      && !e.metaKey
+      && !e.ctrlKey
+      && block.kind === "blockquote"
+      && e.currentTarget.selectionStart === e.currentTarget.selectionEnd
+    ) {
+      const split = splitAtEmptyLine(display, e.currentTarget.selectionStart);
+      if (split === null) return;
+      e.preventDefault();
+      // 引用全体が空なら、段落を足さずにブロック自体を段落へ戻す。
+      if (display === "") {
+        onChange({ id: block.id, kind: "paragraph", source: "", inlines: [] });
+        return;
+      }
+      onSplitBlock(block, split.before, split.after);
       return;
     }
 

@@ -1,5 +1,6 @@
 import type { BlockId } from "@local-md-editor/shared";
 import { useEffect } from "react";
+import { isInEditableTarget } from "../../../selection.js";
 
 type Args = {
   deleteBlocks: (ids: ReadonlySet<BlockId>) => void;
@@ -26,13 +27,6 @@ export const useDomSelectionDelete = ({ deleteBlocks }: Args): void => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [deleteBlocks]);
-};
-
-const isInEditableTarget = (target: EventTarget | null): boolean => {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") return true;
-  if (target.isContentEditable) return true;
-  return false;
 };
 
 // 現在の DOM 選択範囲が触れている `[data-block-id]` 要素をすべて拾う。

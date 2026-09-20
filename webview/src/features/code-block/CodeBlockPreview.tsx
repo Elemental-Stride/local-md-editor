@@ -12,7 +12,7 @@ type Props = {
 export const CodeBlockPreview = ({ block, onEnterEdit }: Props): JSX.Element => {
   if (block.lang === "mermaid") {
     return (
-      <div className="cursor-text" onClick={onEnterEdit} title="クリックして編集">
+      <div className="cursor-text" onDoubleClick={onEnterEdit} title="ダブルクリックして編集">
         <MermaidView value={block.value} />
       </div>
     );
@@ -27,7 +27,7 @@ const SyntaxHighlightedPreview = (
   return (
     <pre
       className="m-0 overflow-x-auto whitespace-pre px-3 py-2 font-mono text-[13px] leading-relaxed"
-      onClick={onEnterEdit}
+      onDoubleClick={onEnterEdit}
     >
       {tokens.length === 0
         ? <span className="opacity-40">空のコードブロック</span>

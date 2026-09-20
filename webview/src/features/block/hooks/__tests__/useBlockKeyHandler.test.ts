@@ -12,6 +12,8 @@ const para = (source: string): ParagraphBlock => ({
   inlines: [],
 });
 
+const quote = (source: string): Block => ({ id: "q", kind: "blockquote", source });
+
 const stubSlash = (overrides: Partial<SlashMenuController> = {}): SlashMenuController => ({
   open: false,
   filter: "",
@@ -108,6 +110,51 @@ describe("useBlockKeyHandler", () => {
       const { handler, ta, onInsertAfter } = setup(para("x"));
       handler(fakeKey({ key: "Enter", metaKey: true, value: "x" }, ta));
       expect(onInsertAfter).toHaveBeenCalled();
+    });
+  });
+
+  describe("Enter (引用ブロック)", () => {
+    test("空行で押すと空行を除いた引用と空の後続段落に分割できる", () => {
+      const { handler, ta, onSplitBlock } = setup(quote("> a\n> "));
+      handler(fakeKey({ key: "Enter", value: "a\n", selectionStart: 2 }, ta));
+      expect(onSplitBlock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "q" }),
+        "a",
+        "",
+      );
+    });
+
+    test("中間の空行で押すと後続行を段落として切り出せる", () => {
+      const { handler, ta, onSplitBlock } = setup(quote("> a\n> \n> b"));
+      handler(fakeKey({ key: "Enter", value: "a\n\nb", selectionStart: 2 }, ta));
+      expect(onSplitBlock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "q" }),
+        "a",
+        "b",
+      );
+    });
+
+    test("引用全体が空のときはブロック自体を段落へ戻せる", () => {
+      const { handler, ta, onChange } = setup(quote("> "));
+      handler(fakeKey({ key: "Enter", value: "", selectionStart: 0 }, ta));
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "q", kind: "paragraph", source: "" }),
+      );
+    });
+
+    test("文字のある行では改行を textarea の既定動作に委ねられる", () => {
+      const { handler, ta, onSplitBlock, onChange } = setup(quote("> a"));
+      handler(fakeKey({ key: "Enter", value: "a", selectionStart: 1 }, ta));
+      expect(onSplitBlock).not.toHaveBeenCalled();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    test("選択範囲があるときは引用の解除ではなく既定動作に委ねられる", () => {
+      const { handler, ta, onSplitBlock } = setup(quote("> \n> b"));
+      handler(
+        fakeKey({ key: "Enter", value: "\nb", selectionStart: 0, selectionEnd: 2 }, ta),
+      );
+      expect(onSplitBlock).not.toHaveBeenCalled();
     });
   });
 

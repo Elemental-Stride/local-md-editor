@@ -123,8 +123,12 @@ export const BlockView = (props: Props): JSX.Element => {
   const highlight = searchHighlight ? searchHighlightClass(searchHighlight.current) : "";
   return (
     <div
+      data-block-content
       className={`cursor-text rounded px-1 hover:bg-white/5 ${highlight}`}
-      onClick={() => {
+      // 編集はダブルクリックで開始する。シングルクリックを編集開始にすると
+      // プレビュー上で文字列を選択した直後に textarea へ切り替わってしまい、
+      // 選択が消えてコピーできない。テーブルのセル編集とも揃う。
+      onDoubleClick={() => {
         editing.enteredViaClick.current = true;
         editing.setEditing(true);
         onFocus(block.id);

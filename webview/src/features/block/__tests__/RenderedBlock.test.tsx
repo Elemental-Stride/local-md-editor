@@ -134,6 +134,45 @@ describe("RenderedBlock", () => {
       const bq = container.querySelector("blockquote");
       expect(bq?.textContent).toBe("hello");
     });
+
+    test("本文中の [text](url) をリンクとして描画できる", () => {
+      const { container } = render(
+        <RenderedBlock
+          block={{ id: "q", kind: "blockquote", source: "> 目次は [index.md](index.md)。" }}
+          onChange={vi.fn()}
+        />,
+      );
+      const a = container.querySelector("blockquote a");
+      expect(a?.getAttribute("href")).toBe("index.md");
+    });
+
+    test("本文中の **強調** や `code` をインライン要素として描画できる", () => {
+      const { container } = render(
+        <RenderedBlock
+          block={{ id: "q", kind: "blockquote", source: "> **太字** と `code`" }}
+          onChange={vi.fn()}
+        />,
+      );
+      expect(container.querySelector("blockquote strong")?.textContent).toBe("太字");
+      expect(container.querySelector("blockquote code")?.textContent).toBe("code");
+    });
+
+    test("複数行引用でも行ごとのリンクをすべて描画できる", () => {
+      const { container } = render(
+        <RenderedBlock
+          block={{
+            id: "q",
+            kind: "blockquote",
+            source: "> 出典は [a.md](a.md)。\n>\n> 目次は [b.md](b.md)。",
+          }}
+          onChange={vi.fn()}
+        />,
+      );
+      const hrefs = [...container.querySelectorAll("blockquote a")].map((a) =>
+        a.getAttribute("href")
+      );
+      expect(hrefs).toEqual(["a.md", "b.md"]);
+    });
   });
 
   describe("その他 (RawBlock デフォルト)", () => {

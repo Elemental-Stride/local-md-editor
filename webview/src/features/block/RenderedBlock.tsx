@@ -24,14 +24,18 @@ type BlockWithInlines =
   | OrderedItemBlock
   | TaskItemBlock;
 
-const renderContent = (block: BlockWithInlines): ReactNode => {
-  if (block.inlines.length > 0) return renderInlines(block.inlines);
-  const text = contentOf(block);
-  // 空ブロックは <br /> で 1 行分の高さを保ち、クリックして編集に
-  // 入れるようにする。これがないと空段落の <p> が高さ 0 になり、
-  // 例えばコードブロック直下に空行を作ってもクリックできなくなる。
+// マーカーを除いた本文テキストを軽量パーサに通して描画する。
+// 空ブロックは <br /> で 1 行分の高さを保ち、クリックして編集に
+// 入れるようにする。これがないと空段落の <p> が高さ 0 になり、
+// 例えばコードブロック直下に空行を作ってもクリックできなくなる。
+const renderText = (text: string): ReactNode => {
   if (text === "") return <br />;
   return renderInlines(parseInlines(text));
+};
+
+const renderContent = (block: BlockWithInlines): ReactNode => {
+  if (block.inlines.length > 0) return renderInlines(block.inlines);
+  return renderText(contentOf(block));
 };
 
 type Props = {
@@ -50,7 +54,7 @@ export const RenderedBlock = ({ block, onChange }: Props): JSX.Element => {
     case "bulletItem":
       return (
         <div className="flex gap-2" style={indentStyle(block.source)}>
-          <span className="select-none pt-px opacity-60">•</span>
+          <span data-md-marker className="select-none pt-px opacity-60">•</span>
           <span className="flex-1 whitespace-pre-wrap leading-relaxed">
             {renderContent(block)}
           </span>
@@ -59,7 +63,7 @@ export const RenderedBlock = ({ block, onChange }: Props): JSX.Element => {
     case "orderedItem":
       return (
         <div className="flex gap-2" style={indentStyle(block.source)}>
-          <span className="select-none pt-px tabular-nums opacity-60">
+          <span data-md-marker className="select-none pt-px tabular-nums opacity-60">
             {orderedMarker(block.source)}
           </span>
           <span className="flex-1 whitespace-pre-wrap leading-relaxed">
@@ -97,11 +101,11 @@ export const RenderedBlock = ({ block, onChange }: Props): JSX.Element => {
     case "thematicBreak":
       return <hr className="my-2 opacity-30" />;
     case "blockquote":
-      // RawBlock 系には inlines が無いので素のテキストを <blockquote> として
-      // 表示する。`> ` 接頭は contentOf で剥がしてから出す。
+      // RawBlock 系には parse 済み inlines が無いため、`> ` 接頭を contentOf で
+      // 剥がした本文を renderText に通してリンクや強調を描画する。
       return (
         <blockquote className="whitespace-pre-wrap border-l-4 border-current/30 pl-3 italic leading-relaxed opacity-80">
-          {contentOf(block)}
+          {renderText(contentOf(block))}
         </blockquote>
       );
     default:
