@@ -44,11 +44,18 @@ describe("CodeBlockView", () => {
       expect(container.querySelector("pre")).not.toBeNull();
     });
 
-    test("preview をクリックすると編集モードに入れる", () => {
+    test("preview をダブルクリックすると編集モードに入れる", () => {
+      const { container } = setup(code("js", "x"));
+      const pre = container.querySelector("pre")!;
+      fireEvent.doubleClick(pre);
+      expect(container.querySelector("textarea")).not.toBeNull();
+    });
+
+    test("シングルクリックでは preview のまま留まれる", () => {
       const { container } = setup(code("js", "x"));
       const pre = container.querySelector("pre")!;
       fireEvent.click(pre);
-      expect(container.querySelector("textarea")).not.toBeNull();
+      expect(container.querySelector("textarea")).toBeNull();
     });
   });
 

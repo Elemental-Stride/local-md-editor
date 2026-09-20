@@ -29,6 +29,9 @@ const sourceWithContent = (block: Block, content: string): string => {
     }
     case "taskItem":
       return `${indentOf(block)}- [${block.checked ? "x" : " "}] ${content}`;
+    case "blockquote":
+      // 多行引用を保つため行ごとに `> ` を付け直す（withDisplayValue と同形）。
+      return content.split("\n").map((line) => `> ${line}`).join("\n");
     default:
       return content;
   }

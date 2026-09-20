@@ -154,10 +154,10 @@ describe("Editor", () => {
       sendInit({ blocks: [para("a", "v1")] });
       // update メッセージで履歴を保ったまま doc を変更 → checkpoint は積まれない
       // ので、useDocumentMutations 経由で変更したい。BlockList の checkbox 等を
-      // 触るのが正攻法だが、ここではテキスト編集 (preview クリック → textarea
-      // 入力) を simulate する。
+      // 触るのが正攻法だが、ここではテキスト編集 (preview ダブルクリック →
+      // textarea 入力) を simulate する。
       const wrapper = document.querySelector(".cursor-text") as HTMLElement;
-      fireEvent.click(wrapper);
+      fireEvent.doubleClick(wrapper);
       const ta = screen.getByRole("textbox") as HTMLTextAreaElement;
       fireEvent.change(ta, { target: { value: "v2" } });
       // 上記で history に soft checkpoint が積まれる → Cmd+Z で undo できる
@@ -175,7 +175,7 @@ describe("Editor", () => {
       render(<Editor />);
       sendInit({ blocks: [para("a", "v1")] });
       const wrapper = document.querySelector(".cursor-text") as HTMLElement;
-      fireEvent.click(wrapper);
+      fireEvent.doubleClick(wrapper);
       const ta = screen.getByRole("textbox") as HTMLTextAreaElement;
       fireEvent.change(ta, { target: { value: "v2" } });
       // undo

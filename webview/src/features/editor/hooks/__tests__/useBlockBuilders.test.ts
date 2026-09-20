@@ -12,6 +12,7 @@ const heading = (level: 1 | 2 | 3, source: string): Block => ({
   inlines: [],
 });
 const bullet = (source: string): Block => ({ id: "b", kind: "bulletItem", source, inlines: [] });
+const quoteBlock = (source: string): Block => ({ id: "q", kind: "blockquote", source });
 const ordered = (source: string): OrderedItemBlock => ({
   id: "o",
   kind: "orderedItem",
@@ -81,6 +82,11 @@ describe("useBlockBuilders", () => {
     test("taskItem の checked 状態を反映した [x] / [ ] で組み立てられる", () => {
       expect(useBuilders().sourceWithContent(task("- [x] old", true), "new")).toBe("- [x] new");
       expect(useBuilders().sourceWithContent(task("- [ ] old", false), "new")).toBe("- [ ] new");
+    });
+
+    test("blockquote は各行に > を付け直して多行引用を保てる", () => {
+      expect(useBuilders().sourceWithContent(quoteBlock("> old"), "a\n\nb"))
+        .toBe("> a\n> \n> b");
     });
 
     test("paragraph 等のマーカーを持たないブロックは content をそのまま返せる", () => {

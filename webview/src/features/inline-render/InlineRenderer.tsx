@@ -51,11 +51,21 @@ type ImageProps = { url: string; alt: string; title?: string; };
 const ImageInline = ({ url, alt, title }: ImageProps): JSX.Element => {
   const cls = classifyUrl(url);
   if (cls.kind === "passthrough") {
-    return <img src={cls.uri} alt={alt} title={title} className="my-1 max-w-full rounded" />;
+    return (
+      <img
+        src={cls.uri}
+        data-md-url={url}
+        alt={alt}
+        title={title}
+        className="my-1 max-w-full rounded"
+      />
+    );
   }
   if (cls.kind === "remote") {
     return (
       <span
+        data-md-url={url}
+        data-md-alt={alt}
         className="my-1 inline-flex items-center gap-2 rounded border border-dashed px-2 py-1 text-xs opacity-70"
         title={`オフライン制約により ${url} は読み込みません`}
       >
@@ -83,5 +93,13 @@ const RelativeImage = ({ url, alt, title }: ImageProps): JSX.Element => {
       </span>
     );
   }
-  return <img src={resolved} alt={alt} title={title} className="my-1 max-w-full rounded" />;
+  return (
+    <img
+      src={resolved}
+      data-md-url={url}
+      alt={alt}
+      title={title}
+      className="my-1 max-w-full rounded"
+    />
+  );
 };

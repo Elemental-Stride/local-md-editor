@@ -76,12 +76,20 @@ describe("BlockView", () => {
       expect(container.querySelector("p")?.textContent).toBe("hello");
     });
 
-    test("preview をクリックすると textarea が出る", () => {
+    test("preview をダブルクリックすると textarea が出る", () => {
+      const { container, onFocus } = setup(para("hello"));
+      const wrapper = container.querySelector(".cursor-text") as HTMLElement;
+      fireEvent.doubleClick(wrapper);
+      expect(container.querySelector("textarea")).not.toBeNull();
+      expect(onFocus).toHaveBeenCalledWith("p");
+    });
+
+    test("シングルクリックでは preview のまま留まり選択を保てる", () => {
       const { container, onFocus } = setup(para("hello"));
       const wrapper = container.querySelector(".cursor-text") as HTMLElement;
       fireEvent.click(wrapper);
-      expect(container.querySelector("textarea")).not.toBeNull();
-      expect(onFocus).toHaveBeenCalledWith("p");
+      expect(container.querySelector("textarea")).toBeNull();
+      expect(onFocus).not.toHaveBeenCalled();
     });
 
     test("initiallyEditing=true なら最初から textarea を出せる", () => {
@@ -120,10 +128,10 @@ describe("BlockView", () => {
       source: "x",
     });
 
-    test("CodeBlockView の preview クリックで onFocus(block.id) を呼べる", () => {
+    test("CodeBlockView の preview ダブルクリックで onFocus(block.id) を呼べる", () => {
       const { container, onFocus } = setup(code());
       const pre = container.querySelector("pre")!;
-      fireEvent.click(pre);
+      fireEvent.doubleClick(pre);
       expect(onFocus).toHaveBeenCalledWith("c");
     });
 
