@@ -2,12 +2,13 @@ import {
   parseInlines,
   type TableBlock,
   tableBlockToHtml,
+  tableBlockToMarkdown,
   type TableCell,
   type TableCellId,
   type TableRow,
 } from "@local-md-editor/shared";
 import {
-  type DragEvent,
+  type CSSProperties,
   Fragment,
   type MouseEvent,
   type ReactNode,
@@ -16,12 +17,15 @@ import {
   useState,
 } from "react";
 import { renderInlines } from "../inline-render/index.js";
+import { TableBarZone } from "./TableBarZone.js";
+import { TableCellEditor } from "./TableCellEditor.js";
+import { TableControlButton } from "./TableControlButton.js";
+import { MergeIcon, MinusIcon, PlusIcon, TrashIcon, UnmergeIcon } from "./TableIcons.js";
 
 type Props = {
   block: TableBlock;
   onChange: (next: TableBlock) => void;
   onDelete: () => void;
-  onDragStart?: (e: DragEvent<HTMLElement>) => void;
 };
 
 // Render a cell's markdown source: split on `\n` so multi-line cells show as
@@ -37,19 +41,6 @@ const renderCellContent = (text: string): ReactNode => {
     </Fragment>
   ));
 };
-
-const GripIcon = (): JSX.Element => (
-  <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-    <g fill="currentColor">
-      <circle cx="6" cy="4" r="1.2" />
-      <circle cx="10" cy="4" r="1.2" />
-      <circle cx="6" cy="8" r="1.2" />
-      <circle cx="10" cy="8" r="1.2" />
-      <circle cx="6" cy="12" r="1.2" />
-      <circle cx="10" cy="12" r="1.2" />
-    </g>
-  </svg>
-);
 
 // --- toolbar primitives --------------------------------------------------
 
@@ -91,76 +82,6 @@ const IconButton = (
     </button>
   );
 };
-
-const Divider = (): JSX.Element => (
-  <div
-    className="mx-0.5 h-4 w-px"
-    style={{ background: "currentColor", opacity: 0.18 }}
-  />
-);
-
-const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.4 } as const;
-
-const MergeIcon = (): JSX.Element => (
-  <svg width="16" height="16" viewBox="0 0 16 16" {...stroke}>
-    <rect x="2.5" y="2.5" width="11" height="11" rx="1" />
-    <path d="M5 5 L7.4 7.4 M11 5 L8.6 7.4 M5 11 L7.4 8.6 M11 11 L8.6 8.6" />
-  </svg>
-);
-
-const UnmergeIcon = (): JSX.Element => (
-  <svg width="16" height="16" viewBox="0 0 16 16" {...stroke}>
-    <rect x="2.5" y="2.5" width="11" height="11" rx="1" />
-    <line x1="2.5" y1="8" x2="13.5" y2="8" />
-    <line x1="8" y1="2.5" x2="8" y2="13.5" />
-  </svg>
-);
-
-const AddRowIcon = (): JSX.Element => (
-  <svg width="16" height="16" viewBox="0 0 16 16" {...stroke}>
-    <rect x="2.5" y="2.5" width="11" height="6" rx="1" />
-    <line x1="8" y1="11" x2="8" y2="14" strokeLinecap="round" />
-    <line x1="6.5" y1="12.5" x2="9.5" y2="12.5" strokeLinecap="round" />
-  </svg>
-);
-
-const AddColIcon = (): JSX.Element => (
-  <svg width="16" height="16" viewBox="0 0 16 16" {...stroke}>
-    <rect x="2.5" y="2.5" width="6" height="11" rx="1" />
-    <line x1="11" y1="8" x2="14" y2="8" strokeLinecap="round" />
-    <line x1="12.5" y1="6.5" x2="12.5" y2="9.5" strokeLinecap="round" />
-  </svg>
-);
-
-const RemoveRowIcon = (): JSX.Element => (
-  <svg width="16" height="16" viewBox="0 0 16 16" {...stroke}>
-    <rect x="2.5" y="5" width="11" height="6" rx="1" />
-    <line x1="5.5" y1="8" x2="10.5" y2="8" strokeLinecap="round" />
-  </svg>
-);
-
-const RemoveColIcon = (): JSX.Element => (
-  <svg width="16" height="16" viewBox="0 0 16 16" {...stroke}>
-    <rect x="5" y="2.5" width="6" height="11" rx="1" />
-    <line x1="8" y1="5.5" x2="8" y2="10.5" strokeLinecap="round" />
-  </svg>
-);
-
-const TrashIcon = (): JSX.Element => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    {...stroke}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3 4.5 H13" />
-    <path d="M5.5 4.5 V13 H10.5 V4.5" />
-    <path d="M7 7 V11 M9 7 V11" />
-    <path d="M6.5 4.5 V2.5 H9.5 V4.5" />
-  </svg>
-);
 
 type GridSlot = { cellId: TableCellId | null; };
 
@@ -329,6 +250,67 @@ const makeTableId = (prefix: string): string =>
 
 type LayoutPos = { r: number; c: number; rowspan: number; colspan: number; };
 
+// カーソルが乗っている帯。削除の − はこの 1 本だけに出す。セル上では
+// 何も出さず、上 / 左の帯に入ったときだけ現れる。
+type BarHover = { axis: "column" | "row"; index: number; } | null;
+
+// カーソルが近づいている罫線。挿入の ＋ はこの線にだけ出す。
+// 番号は境界のインデックスで、列なら 0 (先頭) 〜 numCols (末尾)。
+type LineHover = { column: number | null; row: number | null; };
+const NO_LINE: LineHover = { column: null, row: null };
+
+// 罫線に反応する距離。これ以内にカーソルが来たらその線の ＋ を出す。
+const LINE_HIT_PX = 10;
+
+// 帯セルの矩形から境界線の座標を並べ、カーソルに一番近い境界とその距離を
+// 返す。近い境界が無ければ null。テーブル上のどこにカーソルがあっても
+// 「いま触れている罫線」を 1 本に決めるために使う。
+export const nearestBoundary = (
+  edges: readonly { start: number; end: number; }[],
+  pos: number,
+): { index: number; distance: number; } | null => {
+  if (edges.length === 0) return null;
+  const boundaries = [edges[0].start, ...edges.map((e) => e.end)];
+  let nearest: { index: number; distance: number; } | null = null;
+  boundaries.forEach((boundary, index) => {
+    const distance = Math.abs(boundary - pos);
+    if (nearest === null || distance < nearest.distance) nearest = { index, distance };
+  });
+  if (nearest === null) return null;
+  const found: { index: number; distance: number; } = nearest;
+  return found.distance <= LINE_HIT_PX ? found : null;
+};
+
+const insertColumnLabel = (line: number, total: number): string =>
+  line === 0
+    ? "先頭に列を追加"
+    : line === total
+    ? "末尾に列を追加"
+    : `${line} 列目と ${line + 1} 列目の間に列を追加`;
+
+const insertRowLabel = (line: number, total: number): string =>
+  line === 0
+    ? "先頭に行を追加"
+    : line === total
+    ? "末尾に行を追加"
+    : `${line} 行目と ${line + 1} 行目の間に行を追加`;
+
+// コントロール用の帯。本文セルと違い枠線を持たない。列側は ＋ / − を横一列に
+// 並べられるので 1 段ぶん、行側は ＋ と − を 2 レーンに分けるので 2 段ぶん取る。
+const COLUMN_BAR_PX = 22;
+const ROW_BAR_PX = 40;
+
+// 削除の − を置くレーンの幅。
+const BODY_ZONE = "w-5";
+const CORNER_CELL: CSSProperties = {
+  border: "none",
+  padding: 0,
+  width: ROW_BAR_PX,
+  height: COLUMN_BAR_PX,
+};
+const COLUMN_BAR_CELL: CSSProperties = { border: "none", padding: 0, height: COLUMN_BAR_PX };
+const ROW_BAR_CELL: CSSProperties = { border: "none", padding: 0, width: ROW_BAR_PX };
+
 const computeLayout = (block: TableBlock): {
   positions: Map<TableCellId, LayoutPos>;
   numRows: number;
@@ -364,18 +346,24 @@ const findCell = (block: TableBlock, id: TableCellId): TableCell | null => {
 };
 
 // Re-render block.source from rows so reuseIds matches across whole-doc reparse.
+// extension 側の blockSource と同じ優先順位（パイプで表現できるならパイプ、
+// 無理なら HTML）で組み立てる。ここがズレると再パース後に source が一致せず、
+// reuseIds が別ブロック扱いして TableView をマウントし直すため、選択・編集中
+// セル・開いているメニューがまとめて消える。
 const withSyncedSource = (block: TableBlock, rows: TableRow[]): TableBlock => {
   const next: TableBlock = { ...block, rows };
-  return { ...next, source: tableBlockToHtml(next) };
+  return { ...next, source: tableBlockToMarkdown(next) ?? tableBlockToHtml(next) };
 };
 
 export const TableView = (
-  { block, onChange, onDelete, onDragStart }: Props,
+  { block, onChange, onDelete }: Props,
 ): JSX.Element => {
   const [selection, setSelection] = useState<Set<TableCellId>>(new Set());
   const [anchorId, setAnchorId] = useState<TableCellId | null>(null);
   const [editingCellId, setEditingCellId] = useState<TableCellId | null>(null);
-  const [hovered, setHovered] = useState(false);
+  const [bar, setBar] = useState<BarHover>(null);
+  const [line, setLine] = useState<LineHover>(NO_LINE);
+  const [cornerHovered, setCornerHovered] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // テーブルラッパー外がクリックされたら選択 / 編集状態をクリアする。
@@ -393,10 +381,6 @@ export const TableView = (
   }, []);
 
   const { positions, numRows, numCols } = computeLayout(block);
-
-  // 直近クリックされたセルを、行 / 列の挿入・削除のターゲットとして扱う。
-  const targetPos = anchorId ? positions.get(anchorId) ?? null : null;
-  const showToolbar = hovered || selection.size > 0 || editingCellId !== null;
 
   const updateCell = (cellId: TableCellId, patch: Partial<TableCell>): void => {
     const rows = block.rows.map((row) => ({
@@ -551,44 +535,59 @@ export const TableView = (
     return p !== undefined && (p.rowspan > 1 || p.colspan > 1);
   })();
 
-  const addRow = (): void => {
-    const insertAt = targetPos ? targetPos.r + targetPos.rowspan : numRows;
-    const next = insertRowAt(block, insertAt);
-    onChange(withSyncedSource(next, next.rows));
+  // テーブル上を動かすたび、カーソルに一番近い罫線を 1 本だけ拾う。
+  // 罫線そのものは 1px しかないので、帯セルの矩形から境界座標を取り直して
+  // LINE_HIT_PX 以内かどうかで判定する。
+  const handleTableMouseMove = (e: MouseEvent<HTMLTableElement>): void => {
+    const table = e.currentTarget;
+    const rectsOf = (selector: string) =>
+      Array.from(table.querySelectorAll<HTMLElement>(selector))
+        .map((el) => el.getBoundingClientRect());
+    const columnEdges = rectsOf("[data-column-bar]").map((r) => ({
+      start: r.left,
+      end: r.right,
+    }));
+    const rowEdges = rectsOf("[data-row-bar]").map((r) => ({ start: r.top, end: r.bottom }));
+    const column = nearestBoundary(columnEdges, e.clientX);
+    const row = nearestBoundary(rowEdges, e.clientY);
+    // 交点付近では縦横 2 本ぶんの ＋ が集まって密集するので、近い方だけ出す。
+    const takeColumn = column !== null && (row === null || column.distance <= row.distance);
+    const next: LineHover = {
+      column: takeColumn ? column.index : null,
+      row: !takeColumn && row !== null ? row.index : null,
+    };
+    setLine((prev) => prev.column === next.column && prev.row === next.row ? prev : next);
   };
 
-  const addColumn = (): void => {
-    const insertAt = targetPos ? targetPos.c + targetPos.colspan : numCols;
-    const next = insertColumnAt(block, insertAt);
-    onChange(withSyncedSource(next, next.rows));
-  };
-
-  const removeRow = (): void => {
-    if (!targetPos || numRows <= 1) return;
-    const next = deleteRowAt(block, targetPos.r);
+  const applyStructure = (next: TableBlock): void => {
     onChange(withSyncedSource(next, next.rows));
     setSelection(new Set());
     setAnchorId(null);
   };
 
-  const removeColumn = (): void => {
-    if (!targetPos || numCols <= 1) return;
-    const next = deleteColumnAt(block, targetPos.c);
-    onChange(withSyncedSource(next, next.rows));
-    setSelection(new Set());
-    setAnchorId(null);
-  };
+  // ＋ は押した罫線の位置に挿入する。列 / 行の両側に ＋ を出すので、
+  // 先頭・途中・末尾のどこにでも足せる。
+  const insertColumnAtLine = (c: number): void => applyStructure(insertColumnAt(block, c));
+  const insertRowAtLine = (r: number): void => applyStructure(insertRowAt(block, r));
+  const removeColumn = (c: number): void => applyStructure(deleteColumnAt(block, c));
+  const removeRow = (r: number): void => applyStructure(deleteRowAt(block, r));
+
+  const showMergeBar = canMerge || canUnmerge;
 
   return (
     <div
       ref={wrapperRef}
-      className="relative my-2"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="group relative my-2 w-fit pb-3 pr-3"
+      onMouseLeave={() => {
+        setBar(null);
+        setLine(NO_LINE);
+        setCornerHovered(false);
+      }}
     >
+      {/* 行 / 列の操作は各行・各列のコントロールに任せ、ここはセル結合だけ。 */}
       <div
         className={`absolute bottom-full left-0 mb-1.5 flex items-center gap-0.5 rounded-md border p-0.5 backdrop-blur-sm transition-all duration-150 ${
-          showToolbar
+          showMergeBar
             ? "translate-y-0 opacity-100"
             : "pointer-events-none translate-y-1 opacity-0"
         }`}
@@ -598,64 +597,124 @@ export const TableView = (
           boxShadow: "0 4px 12px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12)",
         }}
       >
-        {onDragStart && (
-          <>
-            <span
-              draggable
-              onDragStart={onDragStart}
-              title="ドラッグしてテーブルを並べ替え"
-              aria-label="ドラッグしてテーブルを並べ替え"
-              className="flex h-7 w-7 items-center justify-center rounded opacity-60 hover:opacity-100"
-              style={{ cursor: "grab" }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLSpanElement).style.background =
-                  "var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.08))";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLSpanElement).style.background = "transparent";
-              }}
-            >
-              <GripIcon />
-            </span>
-            <Divider />
-          </>
-        )}
         <IconButton title="セル結合" onClick={mergeCells} disabled={!canMerge}>
           <MergeIcon />
         </IconButton>
         <IconButton title="結合解除" onClick={unmergeCell} disabled={!canUnmerge}>
           <UnmergeIcon />
         </IconButton>
-        <Divider />
-        <IconButton title="行を追加" onClick={addRow}>
-          <AddRowIcon />
-        </IconButton>
-        <IconButton title="列を追加" onClick={addColumn}>
-          <AddColIcon />
-        </IconButton>
-        <IconButton
-          title="選択セルの行を削除"
-          onClick={removeRow}
-          disabled={!targetPos || numRows <= 1}
-        >
-          <RemoveRowIcon />
-        </IconButton>
-        <IconButton
-          title="選択セルの列を削除"
-          onClick={removeColumn}
-          disabled={!targetPos || numCols <= 1}
-        >
-          <RemoveColIcon />
-        </IconButton>
-        <Divider />
-        <IconButton title="テーブルを削除" onClick={onDelete} variant="danger">
-          <TrashIcon />
-        </IconButton>
       </div>
-      <table className="border-collapse">
+      <table className="border-collapse" onMouseMove={handleTableMouseMove}>
         <tbody>
-          {block.rows.map((row) => (
+          <tr>
+            <td className="relative" style={CORNER_CELL}>
+              {/* テーブル全体の削除。テーブルにカーソルがある間だけ出す。 */}
+              {
+                /* テーブル全体の削除。常時出すと左上が混むので、左上に
+                  カーソルを置いたときだけ出す。 */
+              }
+              <TableBarZone
+                zoneId="table-corner"
+                className="inset-0"
+                active={cornerHovered}
+                onEnter={() => setCornerHovered(true)}
+                onLeave={() => setCornerHovered(false)}
+              >
+                <TableControlButton label="テーブルを削除" onClick={onDelete} danger>
+                  <TrashIcon />
+                </TableControlButton>
+              </TableBarZone>
+            </td>
+            {Array.from({ length: numCols }, (_, c) => (
+              <td
+                key={c}
+                data-column-bar={c}
+                className="relative"
+                style={COLUMN_BAR_CELL}
+              >
+                {/* 列の真ん中は削除の −。セルにカーソルがある間も出したままにする。 */}
+                <TableBarZone
+                  zoneId={`column-body-${c}`}
+                  className="inset-y-0 left-2.5 right-2.5"
+                  active={bar?.axis === "column" && bar.index === c}
+                  onEnter={() => setBar({ axis: "column", index: c })}
+                  onLeave={() => setBar(null)}
+                >
+                  <TableControlButton
+                    label={`${c + 1} 列目を削除`}
+                    onClick={() => removeColumn(c)}
+                    disabled={numCols <= 1}
+                    danger
+                  >
+                    <MinusIcon />
+                  </TableControlButton>
+                </TableBarZone>
+                {/* ＋ は罫線の真上。カーソルが近づいた 1 本だけに出る。 */}
+                {line.column === c && (
+                  <TableControlButton
+                    label={insertColumnLabel(c, numCols)}
+                    onClick={() => insertColumnAtLine(c)}
+                    className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                  >
+                    <PlusIcon />
+                  </TableControlButton>
+                )}
+                {c === numCols - 1 && line.column === numCols && (
+                  <TableControlButton
+                    label={insertColumnLabel(numCols, numCols)}
+                    onClick={() => insertColumnAtLine(numCols)}
+                    className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2"
+                  >
+                    <PlusIcon />
+                  </TableControlButton>
+                )}
+              </td>
+            ))}
+          </tr>
+          {block.rows.map((row, r) => (
             <tr key={row.id}>
+              <td
+                data-row-bar={r}
+                className="relative"
+                style={ROW_BAR_CELL}
+              >
+                {/* 外側のレーンが削除の −。罫線の ＋ と当たり判定が重ならない。 */}
+                <TableBarZone
+                  zoneId={`row-body-${r}`}
+                  className={`inset-y-0 left-0 ${BODY_ZONE}`}
+                  active={bar?.axis === "row" && bar.index === r}
+                  onEnter={() => setBar({ axis: "row", index: r })}
+                  onLeave={() => setBar(null)}
+                >
+                  <TableControlButton
+                    label={`${r + 1} 行目を削除`}
+                    onClick={() => removeRow(r)}
+                    disabled={numRows <= 1}
+                    danger
+                  >
+                    <MinusIcon />
+                  </TableControlButton>
+                </TableBarZone>
+                {/* ＋ は罫線の真上。− のレーンと重ならないよう内側に寄せる。 */}
+                {line.row === r && (
+                  <TableControlButton
+                    label={insertRowLabel(r, numRows)}
+                    onClick={() => insertRowAtLine(r)}
+                    className="absolute right-0 top-0 -translate-y-1/2"
+                  >
+                    <PlusIcon />
+                  </TableControlButton>
+                )}
+                {r === numRows - 1 && line.row === numRows && (
+                  <TableControlButton
+                    label={insertRowLabel(numRows, numRows)}
+                    onClick={() => insertRowAtLine(numRows)}
+                    className="absolute bottom-0 right-0 translate-y-1/2"
+                  >
+                    <PlusIcon />
+                  </TableControlButton>
+                )}
+              </td>
               {row.cells.map((cell) => {
                 const isSelected = selection.has(cell.id);
                 const isEditing = editingCellId === cell.id;
@@ -663,6 +722,7 @@ export const TableView = (
                 return (
                   <Tag
                     key={cell.id}
+                    data-cell-id={cell.id}
                     rowSpan={cell.rowspan > 1 ? cell.rowspan : undefined}
                     colSpan={cell.colspan > 1 ? cell.colspan : undefined}
                     className="min-w-[4rem] border p-1 align-top text-sm"
@@ -683,24 +743,14 @@ export const TableView = (
                   >
                     {isEditing
                       ? (
-                        <textarea
-                          autoFocus
-                          className="w-full resize-none bg-transparent outline-none"
+                        <TableCellEditor
                           value={cell.text}
-                          spellCheck={false}
-                          rows={Math.max(1, cell.text.split("\n").length)}
-                          onChange={(e) => updateCell(cell.id, { text: e.target.value })}
+                          onChange={(text) => updateCell(cell.id, { text })}
                           onBlur={() => setEditingCellId(null)}
-                          onKeyDown={(e) => {
-                            if (e.nativeEvent.isComposing) return;
-                            if (e.key === "Escape") {
-                              (e.currentTarget as HTMLTextAreaElement).blur();
-                            }
-                          }}
                         />
                       )
                       : (
-                        <span className="whitespace-pre-wrap">
+                        <span className="whitespace-pre-wrap break-words">
                           {renderCellContent(cell.text)}
                         </span>
                       )}

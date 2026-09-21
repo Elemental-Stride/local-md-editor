@@ -108,12 +108,11 @@ describe("BlockView", () => {
 
   describe("table delegate ラッパ", () => {
     test("TableView の onDelete を呼ぶと onDeleteAndFocusPrev(block.id) を呼べる", () => {
-      const { onDeleteAndFocusPrev } = setup(tableBlock());
-      // TableView 自体の「テーブルを削除」ボタンを動かすことで、BlockView 内の
+      // TableView 自体の「テーブルを削除」を動かすことで、BlockView 内の
       // 内部ラッパ () => onDeleteAndFocusPrev(block.id) が走ることを確認する。
-      // テーブルセルを 1 つクリックしてツールバーを表示してから削除ボタン押下。
-      const cell = screen.getAllByText("x")[0];
-      fireEvent.click(cell);
+      // 削除ボタンは左上に触れている間だけ出るので、先にそこへカーソルを置く。
+      const { container, onDeleteAndFocusPrev } = setup(tableBlock());
+      fireEvent.mouseEnter(container.querySelector('[data-zone="table-corner"]') as HTMLElement);
       fireEvent.click(screen.getByLabelText("テーブルを削除"));
       expect(onDeleteAndFocusPrev).toHaveBeenCalledWith("tb");
     });

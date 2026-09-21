@@ -76,11 +76,12 @@ export const BlockView = (props: Props): JSX.Element => {
 
   if (block.kind === "table") {
     return (
+      // テーブルの並べ替えは BlockList 左端の ⋮⋮ ハンドルが担うので、
+      // TableView 内には独自のドラッグ起点を置かない。
       <TableView
         block={block}
         onChange={onChange}
         onDelete={() => onDeleteAndFocusPrev(block.id)}
-        onDragStart={onDragStart}
       />
     );
   }

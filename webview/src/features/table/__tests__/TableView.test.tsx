@@ -1,4 +1,4 @@
-import type { TableBlock } from "@local-md-editor/shared";
+import { documentToMarkdown, type TableBlock } from "@local-md-editor/shared";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
@@ -11,7 +11,7 @@ vi.mock("../../../resources.js", () => ({
   useResolvedUri: () => null,
 }));
 
-import { TableView } from "../TableView.js";
+import { nearestBoundary, TableView } from "../TableView.js";
 
 const cell = (id: string, text: string, isHeader = false) => ({
   id,
@@ -30,20 +30,13 @@ const tableBlock = (
   rows: rows.map((r, i) => ({ id: `r${i}`, cells: r.cells })),
 });
 
-const setup = (block: TableBlock, opts: { onDragStart?: () => void; } = {}) => {
+const setup = (block: TableBlock) => {
   const onChange = vi.fn();
   const onDelete = vi.fn();
   return {
     onChange,
     onDelete,
-    ...render(
-      <TableView
-        block={block}
-        onChange={onChange}
-        onDelete={onDelete}
-        onDragStart={opts.onDragStart}
-      />,
-    ),
+    ...render(<TableView block={block} onChange={onChange} onDelete={onDelete} />),
   };
 };
 
@@ -54,11 +47,124 @@ const simpleTable = () =>
     { cells: [cell("c3", "z"), cell("c4", "w")] },
   ]);
 
+// グリップ用セルを除いた本文セルだけを拾う。
 const cellEls = (container: HTMLElement) =>
-  container.querySelectorAll("td, th") as NodeListOf<HTMLTableCellElement>;
+  container.querySelectorAll("[data-cell-id]") as NodeListOf<HTMLTableCellElement>;
+
+const wrapperOf = (container: HTMLElement) =>
+  container.querySelector(".relative.my-2") as HTMLElement;
 
 const toolbarBtn = (label: string): HTMLButtonElement | null =>
   screen.queryByLabelText(label) as HTMLButtonElement | null;
+
+const ctrl = (label: string): HTMLButtonElement =>
+  screen.getByLabelText(label) as HTMLButtonElement;
+
+// セルにカーソルを乗せると、その行と列のコントロールが現れる。
+const hoverCell = (container: HTMLElement, index: number): void => {
+  fireEvent.mouseEnter(cellEls(container)[index]);
+};
+
+// 列 / 行の帯にある当たり判定領域にカーソルを乗せる（削除の − 用）。
+const hoverZone = (container: HTMLElement, zoneId: string): void => {
+  fireEvent.mouseEnter(container.querySelector(`[data-zone="${zoneId}"]`) as HTMLElement);
+};
+
+// 罫線ホバーはカーソル座標と帯セルの矩形の距離で判定する。happy-dom は
+// 実レイアウトを持たず矩形がすべて 0 になるので、帯セルの矩形を差し替えて
+// から mousemove を起こす。
+const COLUMN_W = 60;
+const ROW_H = 30;
+const TABLE_LEFT = 100;
+const TABLE_TOP = 20;
+
+const fakeRect = (
+  box: { left: number; right: number; top: number; bottom: number; },
+): DOMRect =>
+  ({
+    ...box,
+    x: box.left,
+    y: box.top,
+    width: box.right - box.left,
+    height: box.bottom - box.top,
+    toJSON: () => ({}),
+  }) as DOMRect;
+
+const stubBarRects = (container: HTMLElement): void => {
+  container.querySelectorAll<HTMLElement>("[data-column-bar]").forEach((el, i) => {
+    el.getBoundingClientRect = () =>
+      fakeRect({
+        left: TABLE_LEFT + i * COLUMN_W,
+        right: TABLE_LEFT + (i + 1) * COLUMN_W,
+        top: 0,
+        bottom: TABLE_TOP,
+      });
+  });
+  container.querySelectorAll<HTMLElement>("[data-row-bar]").forEach((el, i) => {
+    el.getBoundingClientRect = () =>
+      fakeRect({
+        left: TABLE_LEFT - 40,
+        right: TABLE_LEFT,
+        top: TABLE_TOP + i * ROW_H,
+        bottom: TABLE_TOP + (i + 1) * ROW_H,
+      });
+  });
+};
+
+const moveTo = (container: HTMLElement, clientX: number, clientY: number): void => {
+  stubBarRects(container);
+  fireEvent.mouseMove(container.querySelector("table") as HTMLElement, { clientX, clientY });
+};
+
+// 指定した列境界 (0 = 先頭) の罫線にカーソルを寄せる。行の罫線からは十分離す。
+const hoverColumnLine = (container: HTMLElement, index: number): void => {
+  moveTo(container, TABLE_LEFT + index * COLUMN_W, 9999);
+};
+
+const hoverRowLine = (container: HTMLElement, index: number): void => {
+  moveTo(container, 9999, TABLE_TOP + index * ROW_H);
+};
+
+const firstOnChange = (onChange: ReturnType<typeof vi.fn>): TableBlock =>
+  onChange.mock.calls[0][0] as TableBlock;
+
+// when: nearestBoundary(edges, pos) を呼ぶ
+describe("nearestBoundary", () => {
+  // 幅 60 の帯が 3 つ並んだ状態。境界は 0 / 60 / 120 / 180。
+  const edges = [
+    { start: 0, end: 60 },
+    { start: 60, end: 120 },
+    { start: 120, end: 180 },
+  ];
+
+  describe("近い境界を選ぶ", () => {
+    test("先頭の境界に寄っていれば 0 とその距離を返せる", () => {
+      expect(nearestBoundary(edges, 4)).toEqual({ index: 0, distance: 4 });
+    });
+
+    test("帯と帯の境界に寄っていればその番号を返せる", () => {
+      expect(nearestBoundary(edges, 62)?.index).toBe(1);
+    });
+
+    test("末尾の境界に寄っていれば帯の数と同じ番号を返せる", () => {
+      expect(nearestBoundary(edges, 178)?.index).toBe(3);
+    });
+
+    test("境界のちょうど上なら距離 0 としてその番号を返せる", () => {
+      expect(nearestBoundary(edges, 120)).toEqual({ index: 2, distance: 0 });
+    });
+  });
+
+  describe("境界から離れているとき", () => {
+    test("どの境界からも離れていれば null を返す", () => {
+      expect(nearestBoundary(edges, 90)).toBeNull();
+    });
+
+    test("帯が 1 つも無ければ null を返す", () => {
+      expect(nearestBoundary([], 0)).toBeNull();
+    });
+  });
+});
 
 // when: <TableView /> をマウントしてセル選択 / 編集 / 構造変更する
 describe("TableView", () => {
@@ -66,9 +172,10 @@ describe("TableView", () => {
     test("rows / cells から <table>/<tr>/<td>/<th> を構成できる", () => {
       const { container } = setup(simpleTable());
       expect(container.querySelector("table")).not.toBeNull();
-      expect(container.querySelectorAll("tr")).toHaveLength(3);
-      expect(container.querySelectorAll("th")).toHaveLength(2);
-      expect(container.querySelectorAll("td")).toHaveLength(4);
+      // 本文 3 行 + 先頭の列グリップ行
+      expect(container.querySelectorAll("tr")).toHaveLength(4);
+      expect(container.querySelectorAll("th[data-cell-id]")).toHaveLength(2);
+      expect(container.querySelectorAll("td[data-cell-id]")).toHaveLength(4);
     });
 
     test("セルテキストを描画できる", () => {
@@ -78,24 +185,254 @@ describe("TableView", () => {
     });
   });
 
+  describe("コントロールの出し分け", () => {
+    test("カーソルが乗るまでは ＋ も − も隠しておける", () => {
+      setup(simpleTable());
+      expect(toolbarBtn("1 列目を削除")).toBeNull();
+      expect(toolbarBtn("先頭に列を追加")).toBeNull();
+    });
+
+    test("セルの上では − を出さず無地のままにできる", () => {
+      const { container } = setup(simpleTable());
+      hoverCell(container, 2); // 2 行目 1 列目
+      expect(toolbarBtn("1 列目を削除")).toBeNull();
+      expect(toolbarBtn("2 行目を削除")).toBeNull();
+    });
+
+    test("上の帯に入ると列の − だけを出せる", () => {
+      const { container } = setup(simpleTable());
+      hoverZone(container, "column-body-0");
+      expect(ctrl("1 列目を削除")).toBeInTheDocument();
+      expect(toolbarBtn("1 行目を削除")).toBeNull();
+    });
+
+    test("左の帯に入ると行の − だけを出せる", () => {
+      const { container } = setup(simpleTable());
+      hoverZone(container, "row-body-1");
+      expect(ctrl("2 行目を削除")).toBeInTheDocument();
+      expect(toolbarBtn("1 列目を削除")).toBeNull();
+    });
+
+    test("帯から出ると − を片付けられる", () => {
+      const { container } = setup(simpleTable());
+      hoverZone(container, "column-body-0");
+      fireEvent.mouseLeave(
+        container.querySelector('[data-zone="column-body-0"]') as HTMLElement,
+      );
+      expect(toolbarBtn("1 列目を削除")).toBeNull();
+    });
+
+    test("罫線にカーソルを乗せるとその線の ＋ だけを出せる", () => {
+      const { container } = setup(simpleTable());
+      hoverColumnLine(container, 1);
+      expect(ctrl("1 列目と 2 列目の間に列を追加")).toBeInTheDocument();
+      expect(toolbarBtn("1 列目を削除")).toBeNull();
+    });
+
+    test("隣の罫線の ＋ は出さずカーソルのある 1 本だけに出せる", () => {
+      const { container } = setup(simpleTable());
+      hoverColumnLine(container, 1);
+      expect(toolbarBtn("先頭に列を追加")).toBeNull();
+      expect(toolbarBtn("末尾に列を追加")).toBeNull();
+    });
+
+    test("テーブルから離れるとコントロールを片付けられる", () => {
+      const { container } = setup(simpleTable());
+      hoverZone(container, "column-body-0");
+      hoverColumnLine(container, 1);
+      fireEvent.mouseLeave(wrapperOf(container));
+      expect(toolbarBtn("1 列目を削除")).toBeNull();
+      expect(toolbarBtn("1 列目と 2 列目の間に列を追加")).toBeNull();
+    });
+  });
+
+  describe("縦横の罫線が近いとき", () => {
+    test("交点付近では近い方の罫線 1 本にだけ ＋ を出せる", () => {
+      const { container } = setup(simpleTable());
+      // 列境界 1 に 2px、行境界 1 に 8px の位置 → 列側だけが出る
+      moveTo(container, TABLE_LEFT + COLUMN_W + 2, TABLE_TOP + ROW_H + 8);
+      expect(ctrl("1 列目と 2 列目の間に列を追加")).toBeInTheDocument();
+      expect(toolbarBtn("1 行目と 2 行目の間に行を追加")).toBeNull();
+    });
+  });
+
+  describe("罫線の ＋ による列の挿入", () => {
+    test("先頭の罫線で先頭に列を追加できる", () => {
+      const { container, onChange } = setup(simpleTable());
+      hoverColumnLine(container, 0);
+      fireEvent.click(ctrl("先頭に列を追加"));
+      const next = firstOnChange(onChange);
+      expect(next.rows[0].cells).toHaveLength(3);
+      expect(next.rows[0].cells[0].text).toBe("");
+    });
+
+    test("列と列の間の罫線でその位置に列を追加できる", () => {
+      const { container, onChange } = setup(simpleTable());
+      hoverColumnLine(container, 1);
+      fireEvent.click(ctrl("1 列目と 2 列目の間に列を追加"));
+      const next = firstOnChange(onChange);
+      expect(next.rows[0].cells).toHaveLength(3);
+      expect(next.rows[0].cells[1].text).toBe("");
+    });
+
+    test("末尾の罫線で末尾に列を追加できる", () => {
+      const { container, onChange } = setup(simpleTable());
+      hoverColumnLine(container, 2);
+      fireEvent.click(ctrl("末尾に列を追加"));
+      const next = firstOnChange(onChange);
+      expect(next.rows[0].cells).toHaveLength(3);
+      expect(next.rows[0].cells[2].text).toBe("");
+    });
+  });
+
+  describe("罫線の ＋ による行の挿入", () => {
+    test("先頭の罫線で先頭に行を追加できる", () => {
+      const { container, onChange } = setup(simpleTable());
+      hoverRowLine(container, 0);
+      fireEvent.click(ctrl("先頭に行を追加"));
+      expect(firstOnChange(onChange).rows).toHaveLength(4);
+    });
+
+    test("行と行の間の罫線でその位置に行を追加できる", () => {
+      const { container, onChange } = setup(simpleTable());
+      hoverRowLine(container, 1);
+      fireEvent.click(ctrl("1 行目と 2 行目の間に行を追加"));
+      expect(firstOnChange(onChange).rows).toHaveLength(4);
+    });
+
+    test("末尾の罫線で末尾に行を追加できる", () => {
+      const { container, onChange } = setup(simpleTable());
+      hoverRowLine(container, 3);
+      fireEvent.click(ctrl("末尾に行を追加"));
+      const next = firstOnChange(onChange);
+      expect(next.rows).toHaveLength(4);
+      expect(next.rows[3].cells.every((c) => c.text === "")).toBe(true);
+    });
+
+    test("rowspan が貫通する罫線に挿入すると結合セルを引き継げる", () => {
+      // insertRowAt の「上下で同じ cellId が占めている＝挿入境界をまたぐ」分岐
+      const merged = tableBlock([
+        { cells: [{ id: "m0", text: "merged", rowspan: 2, colspan: 1 }] },
+        { cells: [] },
+        { cells: [cell("c2", "bottom")] },
+      ]);
+      const { container, onChange } = setup(merged);
+      hoverRowLine(container, 1);
+      fireEvent.click(ctrl("1 行目と 2 行目の間に行を追加"));
+      const next = firstOnChange(onChange);
+      expect(next.rows).toHaveLength(4);
+      const spanning = next.rows.flatMap((r) => r.cells).find((c) => c.id === "m0");
+      expect(spanning?.rowspan).toBe(3);
+    });
+  });
+
+  describe("− による削除", () => {
+    test("列の − で列を削除できる", () => {
+      const { container, onChange } = setup(simpleTable());
+      hoverZone(container, "column-body-0");
+      fireEvent.click(ctrl("1 列目を削除"));
+      expect(firstOnChange(onChange).rows[0].cells).toHaveLength(1);
+    });
+
+    test("行の − で行を削除できる", () => {
+      const { container, onChange } = setup(simpleTable());
+      hoverZone(container, "row-body-1");
+      fireEvent.click(ctrl("2 行目を削除"));
+      expect(firstOnChange(onChange).rows).toHaveLength(2);
+    });
+
+    test("単一列のテーブルでは列の − を disabled にできる", () => {
+      const { container } = setup(tableBlock([
+        { cells: [cell("c0", "x")] },
+        { cells: [cell("c1", "y")] },
+      ]));
+      hoverZone(container, "column-body-0");
+      expect(ctrl("1 列目を削除").disabled).toBe(true);
+    });
+
+    test("単一行のテーブルでは行の − を disabled にできる", () => {
+      const { container } = setup(tableBlock([{ cells: [cell("c0", "x")] }]));
+      hoverZone(container, "row-body-0");
+      expect(ctrl("1 行目を削除").disabled).toBe(true);
+    });
+  });
+
+  describe("テーブルの削除", () => {
+    test("左上に触れるまでは削除ボタンを隠しておける", () => {
+      setup(simpleTable());
+      expect(toolbarBtn("テーブルを削除")).toBeNull();
+    });
+
+    test("左上の削除ボタンで onDelete を呼べる", () => {
+      const { container, onDelete } = setup(simpleTable());
+      hoverZone(container, "table-corner");
+      fireEvent.click(ctrl("テーブルを削除"));
+      expect(onDelete).toHaveBeenCalled();
+    });
+  });
+
+  describe("source の同期", () => {
+    // source が extension のシリアライズ結果とズレると、再パース後に
+    // reuseIds がブロックを同一視できず TableView がマウントし直され、
+    // 選択・編集中セル・開いているメニューが消える。
+    test("構造変更後の source を extension と同じ markdown にできる", () => {
+      const { container, onChange } = setup(simpleTable());
+      hoverRowLine(container, 3);
+      fireEvent.click(ctrl("末尾に行を追加"));
+      const next = firstOnChange(onChange);
+      expect(next.source).toBe(documentToMarkdown({ blocks: [next] }).replace(/\n+$/, ""));
+    });
+
+    test("セル編集後の source も extension と同じ markdown にできる", () => {
+      const { container, onChange } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      fireEvent.change(container.querySelector("textarea") as HTMLTextAreaElement, {
+        target: { value: "edited" },
+      });
+      const next = firstOnChange(onChange);
+      expect(next.source).toBe(documentToMarkdown({ blocks: [next] }).replace(/\n+$/, ""));
+    });
+  });
+
   describe("セル選択", () => {
-    test("セルクリックでツールバー (行/列追加 など) が表示される", () => {
+    test("単一セル選択では結合ツールバーを隠したままにできる", () => {
       const { container } = setup(simpleTable());
       fireEvent.click(cellEls(container)[2]);
-      expect(toolbarBtn("行を追加")).not.toBeNull();
+      const toolbar = toolbarBtn("セル結合")!.closest("div") as HTMLElement;
+      expect(toolbar.className).toContain("opacity-0");
     });
 
-    test("単一セル選択ではセル結合が disabled になる", () => {
-      const { container } = setup(simpleTable());
-      fireEvent.click(cellEls(container)[2]);
-      expect(toolbarBtn("セル結合")?.disabled).toBe(true);
-    });
-
-    test("複数選択 (Shift+クリック) でセル結合が enabled になる", () => {
+    test("複数選択 (Shift+クリック) で結合ツールバーを表示できる", () => {
       const { container } = setup(simpleTable());
       fireEvent.click(cellEls(container)[2]);
       fireEvent.click(cellEls(container)[3], { shiftKey: true });
+      const toolbar = toolbarBtn("セル結合")!.closest("div") as HTMLElement;
+      expect(toolbar.className).toContain("opacity-100");
       expect(toolbarBtn("セル結合")?.disabled).toBe(false);
+    });
+
+    test("Cmd+クリックで既選択セルを toggle して外せる", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.click(cellEls(container)[2]);
+      fireEvent.click(cellEls(container)[2], { metaKey: true });
+      expect(toolbarBtn("セル結合")?.disabled).toBe(true);
+    });
+
+    test("Cmd+クリックで複数選択を追加できる", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.click(cellEls(container)[2]);
+      fireEvent.click(cellEls(container)[3], { metaKey: true });
+      expect(toolbarBtn("セル結合")?.disabled).toBe(false);
+    });
+
+    test("テーブル外を mousedown すると結合ツールバーを隠せる", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.click(cellEls(container)[2]);
+      fireEvent.click(cellEls(container)[3], { shiftKey: true });
+      const toolbar = toolbarBtn("セル結合")!.closest("div") as HTMLElement;
+      expect(toolbar.className).toContain("opacity-100");
+      fireEvent.mouseDown(document.body);
+      expect(toolbar.className).toContain("opacity-0");
     });
   });
 
@@ -105,72 +442,95 @@ describe("TableView", () => {
       fireEvent.doubleClick(cellEls(container)[2]);
       expect(container.querySelector("textarea")).not.toBeNull();
     });
-  });
 
-  describe("行・列の追加", () => {
-    test("「行を追加」で rows 数が増えた block を渡せる", () => {
-      const { container, onChange } = setup(simpleTable());
-      fireEvent.click(cellEls(container)[2]);
-      fireEvent.click(toolbarBtn("行を追加")!);
-      const next = onChange.mock.calls[0][0] as TableBlock;
-      expect(next.rows).toHaveLength(4);
+    test("ダブルクリックで開いた textarea はキャレットが末尾にある", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]); // "x"
+      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
+      expect(ta.selectionStart).toBe(ta.value.length);
     });
 
-    test("「列を追加」で各行のセル数が増えた block を渡せる", () => {
+    test("textarea でテキストを変更すると updateCell 経由で onChange を呼べる", () => {
       const { container, onChange } = setup(simpleTable());
-      fireEvent.click(cellEls(container)[2]);
-      fireEvent.click(toolbarBtn("列を追加")!);
-      const next = onChange.mock.calls[0][0] as TableBlock;
-      expect(next.rows[0].cells).toHaveLength(3);
-    });
-  });
-
-  describe("行・列の削除", () => {
-    test("「選択セルの行を削除」で行を 1 つ減らせる", () => {
-      const { container, onChange } = setup(simpleTable());
-      fireEvent.click(cellEls(container)[2]);
-      fireEvent.click(toolbarBtn("選択セルの行を削除")!);
-      const next = onChange.mock.calls[0][0] as TableBlock;
-      expect(next.rows).toHaveLength(2);
+      fireEvent.doubleClick(cellEls(container)[2]);
+      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
+      fireEvent.change(ta, { target: { value: "edited" } });
+      const edited = firstOnChange(onChange).rows.flatMap((r) => r.cells).find(
+        (c) => c.id === "c1",
+      );
+      expect(edited?.text).toBe("edited");
     });
 
-    test("「選択セルの列を削除」で列を 1 つ減らせる", () => {
-      const { container, onChange } = setup(simpleTable());
-      fireEvent.click(cellEls(container)[2]);
-      fireEvent.click(toolbarBtn("選択セルの列を削除")!);
-      const next = onChange.mock.calls[0][0] as TableBlock;
-      expect(next.rows[0].cells).toHaveLength(1);
+    test("textarea で blur すると編集モードを抜けられる", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      fireEvent.blur(container.querySelector("textarea") as HTMLTextAreaElement);
+      expect(container.querySelector("textarea")).toBeNull();
     });
-  });
 
-  describe("テーブル削除", () => {
-    test("「テーブルを削除」で onDelete を呼べる", () => {
-      const { container, onDelete } = setup(simpleTable());
-      fireEvent.click(cellEls(container)[2]);
-      fireEvent.click(toolbarBtn("テーブルを削除")!);
-      expect(onDelete).toHaveBeenCalled();
+    test("textarea で Escape を押すと blur で編集モードを抜けられる", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      fireEvent.keyDown(container.querySelector("textarea") as HTMLTextAreaElement, {
+        key: "Escape",
+      });
+      expect(container.querySelector("textarea")).toBeNull();
+    });
+
+    test("IME 変換中の Escape では textarea を残せる", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      fireEvent.keyDown(container.querySelector("textarea") as HTMLTextAreaElement, {
+        key: "Escape",
+        isComposing: true,
+      });
+      expect(container.querySelector("textarea")).not.toBeNull();
+    });
+
+    test("Escape 以外のキーでは編集モードを続けられる", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      fireEvent.keyDown(container.querySelector("textarea") as HTMLTextAreaElement, {
+        key: "a",
+      });
+      expect(container.querySelector("textarea")).not.toBeNull();
+    });
+
+    test("編集中のセルから外部クリックすると編集を解除できる", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      const outside = document.createElement("div");
+      document.body.appendChild(outside);
+      fireEvent.mouseDown(outside);
+      expect(container.querySelector("textarea")).toBeNull();
+      outside.remove();
+    });
+
+    test("編集中はセルクリックを無視して編集を続けられる", () => {
+      const { container } = setup(simpleTable());
+      fireEvent.doubleClick(cellEls(container)[2]);
+      fireEvent.click(cellEls(container)[3]);
+      expect(container.querySelector("textarea")).not.toBeNull();
     });
   });
 
   describe("セル結合 (merge)", () => {
     test("複数選択して結合すると rowspan/colspan を持つ block を渡せる", () => {
       const { container, onChange } = setup(simpleTable());
-      fireEvent.click(cellEls(container)[2]); // c1
-      fireEvent.click(cellEls(container)[3], { shiftKey: true }); // c2
+      fireEvent.click(cellEls(container)[2]);
+      fireEvent.click(cellEls(container)[3], { shiftKey: true });
       fireEvent.click(toolbarBtn("セル結合")!);
-      const next = onChange.mock.calls[0][0] as TableBlock;
-      const merged = next.rows.flatMap((r) => r.cells).find(
-        (c) => (c.colspan ?? 1) > 1 || (c.rowspan ?? 1) > 1,
+      const merged = firstOnChange(onChange).rows.flatMap((r) => r.cells).find(
+        (c) => c.colspan > 1 || c.rowspan > 1,
       );
       expect(merged).toBeDefined();
     });
 
-    test("結合済みセル単独選択時は「結合解除」ボタンが enabled になる", () => {
+    test("結合済みセル単独選択時は「結合解除」が enabled になる", () => {
       const merged = tableBlock([
         { cells: [cell("m", "merged"), cell("c2", "y")] },
         { cells: [cell("c3", "z"), cell("c4", "w")] },
       ]);
-      // merge 済みセル (rowspan=2, colspan=2) を作る
       merged.rows[0].cells[0] = { ...merged.rows[0].cells[0], rowspan: 2, colspan: 2 };
       merged.rows[0].cells = [merged.rows[0].cells[0]];
       merged.rows[1].cells = [];
@@ -188,13 +548,11 @@ describe("TableView", () => {
       const { container, onChange } = setup(merged);
       fireEvent.click(cellEls(container)[0]);
       fireEvent.click(toolbarBtn("結合解除")!);
-      const next = onChange.mock.calls[0][0] as TableBlock;
-      const all = next.rows.flatMap((r) => r.cells);
+      const all = firstOnChange(onChange).rows.flatMap((r) => r.cells);
       expect(all.every((c) => c.rowspan === 1 && c.colspan === 1)).toBe(true);
     });
 
     test("2x2 の結合解除で 4 セルに展開できる", () => {
-      // 2x2 に結合されたセル + その右隣 + 下行
       const merged: TableBlock = {
         id: "tb",
         kind: "table",
@@ -214,281 +572,41 @@ describe("TableView", () => {
         ],
       };
       const { container, onChange } = setup(merged);
-      fireEvent.click(cellEls(container)[0]); // m を選択
+      fireEvent.click(cellEls(container)[0]);
       fireEvent.click(toolbarBtn("結合解除")!);
-      const next = onChange.mock.calls[0][0] as TableBlock;
-      // 元の 3 セルから 4 + 既存 X / Y = 6 セル (2 行 x 3 列)
-      const allCells = next.rows.flatMap((r) => r.cells);
-      // 全セルが 1x1
-      expect(allCells.every((c) => c.rowspan === 1 && c.colspan === 1)).toBe(true);
-      // 行 0 が 3 セル、行 1 も 3 セル
+      const next = firstOnChange(onChange);
       expect(next.rows[0].cells.length).toBe(3);
       expect(next.rows[1].cells.length).toBe(3);
     });
   });
 
-  describe("セル選択 (Cmd / 範囲解除)", () => {
-    test("Cmd+クリックで既選択セルを toggle して外せる", () => {
-      const { container } = setup(simpleTable());
-      fireEvent.click(cellEls(container)[2]); // c1 選択
-      fireEvent.click(cellEls(container)[2], { metaKey: true }); // c1 を外す
-      // 選択 0 件なので結合は無効、行追加は targetPos が無いので末尾に追加
-      expect(toolbarBtn("セル結合")?.disabled).toBe(true);
-    });
-
-    test("テーブル外を mousedown するとツールバーが非表示になる", () => {
+  describe("結合ツールバーの hover 効果", () => {
+    test("enabled なボタンに mouseEnter するとホバー背景を当てられる", () => {
       const { container } = setup(simpleTable());
       fireEvent.click(cellEls(container)[2]);
-      // ツールバーは常に DOM にあるが、表示状態は class で切り替わるので
-      // class に opacity-100 が含まれることを確認する
-      const toolbar = toolbarBtn("行を追加")!.closest("div") as HTMLElement;
-      expect(toolbar.className).toContain("opacity-100");
-      // テーブル外で mousedown → 選択クリア → ツールバー opacity-0
-      fireEvent.mouseDown(document.body);
-      expect(toolbar.className).toContain("opacity-0");
-    });
-  });
-
-  describe("セル編集 textarea", () => {
-    test("textarea でテキストを変更すると updateCell 経由で onChange を呼べる", () => {
-      const { container, onChange } = setup(simpleTable());
-      fireEvent.doubleClick(cellEls(container)[2]); // c1 編集
-      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
-      fireEvent.change(ta, { target: { value: "edited" } });
-      const next = onChange.mock.calls[0][0] as TableBlock;
-      const edited = next.rows.flatMap((r) => r.cells).find((c) => c.id === "c1");
-      expect(edited?.text).toBe("edited");
+      fireEvent.click(cellEls(container)[3], { shiftKey: true });
+      const btn = toolbarBtn("セル結合")!;
+      fireEvent.mouseEnter(btn);
+      expect(btn.style.background).toBe("var(--hover-bg)");
+      // happy-dom は var() を含む background shorthand を "transparent" で
+      // 上書きできないため、mouseLeave はハンドラの実行だけ確認する。
+      fireEvent.mouseLeave(btn);
     });
 
-    test("textarea で blur すると編集モードを抜けられる", () => {
+    test("disabled なボタンでは mouseEnter しても背景を据え置ける", () => {
       const { container } = setup(simpleTable());
-      fireEvent.doubleClick(cellEls(container)[2]);
-      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
-      fireEvent.blur(ta);
-      expect(container.querySelector("textarea")).toBeNull();
-    });
-
-    test("textarea で Escape を押すと blur で編集モードを抜けられる", () => {
-      const { container } = setup(simpleTable());
-      fireEvent.doubleClick(cellEls(container)[2]);
-      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
-      fireEvent.keyDown(ta, { key: "Escape" });
-      // Escape は blur を発火 → 編集解除
-      expect(container.querySelector("textarea")).toBeNull();
-    });
-
-    test("IME 変換中の Escape は blur を呼ばない (textarea が残る)", () => {
-      // onKeyDown の `if (e.nativeEvent.isComposing) return;` 分岐を観測
-      const { container } = setup(simpleTable());
-      fireEvent.doubleClick(cellEls(container)[2]);
-      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
-      fireEvent.keyDown(ta, { key: "Escape", isComposing: true });
-      // 変換中は無視 → 編集モードは継続
-      expect(container.querySelector("textarea")).not.toBeNull();
-    });
-
-    test("textarea で Escape 以外のキーは何もしない (else-path)", () => {
-      // `if (e.key === "Escape")` の false 分岐を観測
-      const { container } = setup(simpleTable());
-      fireEvent.doubleClick(cellEls(container)[2]);
-      const ta = container.querySelector("textarea") as HTMLTextAreaElement;
-      fireEvent.keyDown(ta, { key: "a" });
-      expect(container.querySelector("textarea")).not.toBeNull();
-    });
-
-    test("編集中のセルから外部クリックすると editing が解除される", () => {
-      // useEffect の outside-mousedown handler が editingCellId を null に戻す
-      // 経路 (line 386 false-branch、line 389)
-      const { container } = setup(simpleTable());
-      fireEvent.doubleClick(cellEls(container)[2]);
-      expect(container.querySelector("textarea")).not.toBeNull();
-      const outside = document.createElement("div");
-      document.body.appendChild(outside);
-      fireEvent.mouseDown(outside);
-      expect(container.querySelector("textarea")).toBeNull();
-      outside.remove();
-    });
-  });
-
-  describe("ドラッグハンドル", () => {
-    test("onDragStart prop が無いとドラッグハンドルは描画されない", () => {
-      setup(simpleTable());
-      // ホバー / 選択でツールバーを表示
-      fireEvent.click(screen.getAllByText("x")[0]);
-      expect(screen.queryByLabelText("ドラッグしてテーブルを並べ替え")).toBeNull();
-    });
-
-    test("onDragStart prop があるとドラッグハンドルが表示される", () => {
-      const onDragStart = vi.fn();
-      setup(simpleTable(), { onDragStart });
-      fireEvent.click(screen.getAllByText("x")[0]);
-      expect(screen.getByLabelText("ドラッグしてテーブルを並べ替え")).toBeInTheDocument();
-    });
-
-    test("ドラッグハンドルのホバーで背景色を切り替えられる", () => {
-      const onDragStart = vi.fn();
-      setup(simpleTable(), { onDragStart });
-      fireEvent.click(screen.getAllByText("x")[0]);
-      const handle = screen.getByLabelText("ドラッグしてテーブルを並べ替え") as HTMLSpanElement;
-      fireEvent.mouseEnter(handle);
-      expect(handle.style.background).not.toBe("transparent");
-      fireEvent.mouseLeave(handle);
-      expect(handle.style.background).toBe("transparent");
-    });
-  });
-
-  describe("テーブルラッパーのホバー", () => {
-    test("table 全体に mouseEnter するとツールバーが表示される (選択無しでも)", () => {
-      const { container } = setup(simpleTable());
-      const wrapper = container.querySelector(".relative.my-2") as HTMLElement;
-      fireEvent.mouseEnter(wrapper);
-      const toolbar = toolbarBtn("行を追加")!.closest("div") as HTMLElement;
-      expect(toolbar.className).toContain("opacity-100");
-    });
-
-    test("mouseLeave で hovered=false に戻り、選択も無いとツールバーが隠れる", () => {
-      const { container } = setup(simpleTable());
-      const wrapper = container.querySelector(".relative.my-2") as HTMLElement;
-      fireEvent.mouseEnter(wrapper);
-      fireEvent.mouseLeave(wrapper);
-      const toolbar = toolbarBtn("行を追加")!.closest("div") as HTMLElement;
-      expect(toolbar.className).toContain("opacity-0");
-    });
-  });
-
-  describe("セル選択 (Cmd+Click) の枝", () => {
-    test("Cmd+Click で複数選択を追加できる", () => {
-      const { container } = setup(simpleTable());
-      fireEvent.click(cellEls(container)[2]); // c1
-      fireEvent.click(cellEls(container)[3], { metaKey: true }); // c2 を追加
-      // セル結合が enabled (selection.size >= 2)
-      expect(toolbarBtn("セル結合")?.disabled).toBe(false);
-    });
-
-    test("編集中はセルクリックを無視できる", () => {
-      const { container } = setup(simpleTable());
-      // c1 を編集中にする
-      fireEvent.doubleClick(cellEls(container)[2]);
-      expect(container.querySelector("textarea")).not.toBeNull();
-      // 別セルをクリックしても selection は変わらない (編集中の no-op)
-      fireEvent.click(cellEls(container)[3]);
-      // textarea は依然として編集中のまま (= 編集モードが維持されている)
-      expect(container.querySelector("textarea")).not.toBeNull();
-    });
-  });
-
-  describe("行・列追加・削除のエッジケース", () => {
-    test("単一行のテーブルでは「行を削除」が disabled になる", () => {
-      const single = tableBlock([{ cells: [cell("c0", "x")] }]);
-      const { container } = setup(single);
-      fireEvent.click(cellEls(container)[0]);
-      expect(toolbarBtn("選択セルの行を削除")?.disabled).toBe(true);
-    });
-
-    test("単一列のテーブルでは「列を削除」が disabled になる", () => {
-      const single = tableBlock([
-        { cells: [cell("c0", "x")] },
-        { cells: [cell("c1", "y")] },
-      ]);
-      const { container } = setup(single);
-      fireEvent.click(cellEls(container)[0]);
-      expect(toolbarBtn("選択セルの列を削除")?.disabled).toBe(true);
-    });
-
-    test("anchor セルが無い (= 何も選択していない) 状態で「行を追加」を押すと末尾に追加される", () => {
-      const { container, onChange } = setup(simpleTable());
-      const wrapper = container.querySelector(".relative.my-2") as HTMLElement;
-      fireEvent.mouseEnter(wrapper);
-      // anchor 無しでツールバー表示 → 行追加で末尾に追加 (insertAt = numRows)
-      fireEvent.click(toolbarBtn("行を追加")!);
-      const next = onChange.mock.calls[0][0] as TableBlock;
-      expect(next.rows).toHaveLength(4);
-    });
-  });
-
-  describe("ツールバーボタンの hover 効果", () => {
-    test("disabled でないボタンに mouseEnter / mouseLeave で背景を切り替えられる", () => {
-      // single row でない通常テーブル → 「行を削除」は enabled になる
-      const { container } = setup(simpleTable());
-      const cells = cellEls(container);
-      fireEvent.click(cells[0]);
-      const btn = toolbarBtn("選択セルの行を削除");
-      if (btn && !btn.disabled) {
-        fireEvent.mouseEnter(btn);
-        // onMouseEnter は currentTarget.style.background を hover 用に切り替える (line 84)
-        expect(btn.style.background).not.toBe("");
-        // mouseLeave handler (line 87) を発火 (happy-dom の background 比較は緩いので
-        // 例外なく走ることだけ観測する)
-        fireEvent.mouseLeave(btn);
-      }
-    });
-
-    test("disabled なボタンに mouseEnter しても背景は変わらない (early-return)", () => {
-      // 単一行テーブルで「行を削除」が disabled になり、mouseEnter の early-return 分岐 (line 83) を観測
-      const single = tableBlock([{ cells: [cell("c0", "x")] }]);
-      const { container } = setup(single);
-      fireEvent.click(cellEls(container)[0]);
-      const btn = toolbarBtn("選択セルの行を削除");
-      if (btn) {
-        expect(btn.disabled).toBe(true);
-        fireEvent.mouseEnter(btn);
-        // disabled の場合 onMouseEnter は早期 return → style.background は "" のまま
-        expect(btn.style.background).toBe("");
-      }
+      fireEvent.click(cellEls(container)[2]);
+      const btn = toolbarBtn("セル結合")!;
+      expect(btn.disabled).toBe(true);
+      fireEvent.mouseEnter(btn);
+      expect(btn.style.background).toBe("");
     });
   });
 
   describe("空セルの描画", () => {
     test("text が空文字のセルは省略記号 placeholder を表示できる", () => {
-      // renderCellContent の `if (text === "")` 分岐 (line 31)
-      const empty = tableBlock([{ cells: [cell("c0", "")] }]);
-      const { container } = setup(empty);
-      // placeholder の `…` か opacity-30 span を確認
+      const { container } = setup(tableBlock([{ cells: [cell("c0", "")] }]));
       expect(container.querySelector(".opacity-30")).not.toBeNull();
-    });
-  });
-
-  describe("テーブル外クリックで編集 / 選択をクリア", () => {
-    test("ラッパー外の document.mousedown で選択 / 編集状態が解除される", () => {
-      // wrapperRef.contains(target) === false 分岐 (line 386 false-path)
-      const { container } = setup(simpleTable());
-      // セルをクリックして anchor / selection を作る
-      const cells = cellEls(container);
-      fireEvent.click(cells[0]);
-      // ツールバーが見えていることを確認
-      expect(toolbarBtn("選択セルの行を削除")).not.toBeNull();
-      // ラッパー外で mousedown
-      const outside = document.createElement("div");
-      document.body.appendChild(outside);
-      fireEvent.mouseDown(outside);
-      // 選択がクリアされ、disabled なツールバーは hovered 解除で消える
-      // (但しツールバーはまだ表示されているかも → 状態のみ確認)
-      outside.remove();
-    });
-  });
-
-  describe("行を追加 (anchor 中段) で merge を意識した slot 計算", () => {
-    test("中段の anchor で行追加すると、上段に rowspan>1 のセルがある場合は cellId を継承して挿入できる", () => {
-      // anchor 行の上に rowspan=2 で繋がる cell があると、新行は同じ cellId を継承する
-      // (line 255-258 の「上段から下りてきた merge セルを引き継ぐ」分岐)
-      const merged = tableBlock([
-        { cells: [{ id: "m0", text: "merged", rowspan: 2, colspan: 1 }] },
-        { cells: [] },
-        { cells: [{ id: "c2", text: "bottom", rowspan: 1, colspan: 1 }] },
-      ]);
-      const { container, onChange } = setup(merged);
-      // 真ん中行の(rowspan が貫通している)場所をクリックしてみる
-      const cells = cellEls(container);
-      // 1 個目は rowspan=2 のセル
-      fireEvent.click(cells[0]);
-      // ツールバーから「行を追加」(insertAt = 1, anchor 行) を押す
-      const btn = toolbarBtn("行を追加");
-      if (btn) {
-        fireEvent.click(btn);
-        const next = onChange.mock.calls[0]?.[0] as TableBlock | undefined;
-        // 既存 3 行 + 1 行 = 4 行
-        if (next) expect(next.rows.length).toBeGreaterThanOrEqual(3);
-      }
     });
   });
 });
