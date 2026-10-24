@@ -21,7 +21,10 @@
   "engines": {
     "vscode": "^1.90.0"
   },
-  "categories": ["Other", "Visualization"],
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
   "keywords": [
     "markdown",
     "editor",
@@ -39,8 +42,12 @@
         "viewType": "localMdEditor.editor",
         "displayName": "Local MD Editor",
         "selector": [
-          { "filenamePattern": "*.md" },
-          { "filenamePattern": "*.markdown" }
+          {
+            "filenamePattern": "*.md"
+          },
+          {
+            "filenamePattern": "*.markdown"
+          }
         ],
         "priority": "default"
       }
@@ -69,15 +76,15 @@
   "dependencies": {
     "@local-md-editor/shared": "workspace:*",
     "node-html-parser": "^6.1.13",
-    "remark-gfm": "^4.0.0",
+    "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.5"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4",
-    "@types/node": "^20.16.10",
-    "@types/vscode": "^1.90.0",
-    "@vscode/vsce": "^3.2.0",
-    "esbuild": "^0.25.0"
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.140.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.25.12"
   }
 }
