@@ -55,6 +55,35 @@ local-md-editor/
 
 技術選定や設計方針は [.claude/CLAUDE.md](./.claude/CLAUDE.md) を参照。
 
+## 依存更新とセキュリティ
+
+依存の更新は Dependabot に任せています。設定は [.github/dependabot.yml](./.github/dependabot.yml)。
+
+| 種類       | 契機                         | PR を作るもの                                             |
+| ---------- | ---------------------------- | --------------------------------------------------------- |
+| 脆弱性修正 | Advisory Database で検知次第 | Dependabot security updates（リポジトリ設定で有効化済み） |
+| 定期更新   | 毎週月曜 09:00 (Asia/Tokyo)  | Dependabot version updates（`.github/dependabot.yml`）    |
+
+Dependabot の PR は英語でしか作られないため、[.github/workflows/dependabot-ja.yml](./.github/workflows/dependabot-ja.yml) がタイトルと本文を日本語へ差し替えます（原文は本文の details 内に残るので情報は失われません）。翻訳 API は使わず、Dependabot が commit message に書く機械可読な更新情報（`updated-dependencies` ブロック）を定型文へ差し込む方式です。外部サービスに依存せず、同じ入力から常に同じ文面になります。
+
+ロジックは [.github/scripts/dependabot-ja/](./.github/scripts/dependabot-ja/) にあり、`pnpm vitest run --project scripts` でテストできます。
+
+### 公開 7 日ルール（minimumReleaseAge）との関係
+
+`pnpm-workspace.yaml` の `minimumReleaseAge: 10080` により、公開から 7 日未満のバージョンは install 自体が拒否されます。Dependabot 側にも同じ待機期間（`cooldown.default-days: 7`）を設定していますが、**security updates は cooldown の対象外**です。そのため公開直後の修正版を掴んだ PR は lockfile 更新に失敗することがあります。その場合は次のいずれかを選び、判断の理由を PR に残してください。
+
+1. 7 日経過を待ち、PR に `@dependabot recreate` とコメントして作り直す
+2. 緊急時のみ、`pnpm-workspace.yaml` の `minimumReleaseAgeExclude` に対象パッケージを一時追加して手動更新する（マージ後に除外を戻す）
+
+### 手元での確認
+
+```bash
+pnpm audit                      # 既知の脆弱性を一覧
+pnpm audit --audit-level high   # high 以上のみ
+```
+
+`pnpm audit` は npm registry の advisory API を参照するため通信します（開発時のコマンドのみ。拡張本体は通信しません）。
+
 ## パッケージング
 
 `extension/` 配下で vsce パッケージを生成します。`vscode:prepublish` がリポジトリルートの `README.md` / `LICENSE` / `CHANGELOG.md` を `extension/` にコピーするので、これらは extension/ では編集せずルートで編集してください。
