@@ -1,0 +1,47 @@
+name: dependabot-ja
+
+# Dependabot の PR は英語でしか作られないため、タイトルと本文を日本語へ差し替える。
+# 原文は本文内の details に残すので、情報は失われない。
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+  # この workflow が default branch に無い時期に立った PR を後から日本語化するため、
+  # PR 番号を指定しての手動実行も受け付ける。
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 日本語化する PR 番号
+        required: true
+        type: string
+
+# Dependabot 起点の workflow の GITHUB_TOKEN は既定で read-only。
+# PR を書き換えるため pull-requests: write を明示的に付与する。
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  localize:
+    # 手動実行時は対象が Dependabot の PR かをスクリプト側で確認する。
+    if: github.event_name == 'workflow_dispatch'
+      || github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: スクリプトを取得
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # PR head には依存更新が入っている。head 側のコードを書き込み権限付きで
+          # 実行しないよう、base の内容だけを取り出す。
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: PR を日本語化
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+        run: node .github/scripts/dependabot-ja/main.mjs

@@ -7,7 +7,7 @@ const STANDARD = { lines: 80, branches: 70, functions: 80 };
 export default defineConfig({
   test: {
     reporters: [new CleanTreeReporter()],
-    projects: ["./shared", "./webview", "./extension"],
+    projects: ["./shared", "./webview", "./extension", "./.github/scripts"],
     coverage: {
       provider: "v8",
       // include で指定したファイルは「テスト未到達でも計上」される (vitest 4 の

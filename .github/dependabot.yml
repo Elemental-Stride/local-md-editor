@@ -1,0 +1,80 @@
+# Dependabot 設定
+#
+# 役割分担:
+#   - 脆弱性対応 PR: GitHub 側の Dependabot security updates が検知次第自動で作る
+#     (リポジトリ設定 / この YAML では制御しない)。
+#   - 定期更新 PR: 以下の version updates 設定で作る。
+#   - PR の文面: Dependabot は英語でしか書けないため、
+#     .github/workflows/dependabot-ja.yml が日本語の要約に差し替える。
+#
+# pnpm-workspace.yaml の supply chain 防御と整合させること:
+#   minimumReleaseAge: 10080 (= 7 日) に対して cooldown.default-days: 7。
+#   公開 7 日未満のバージョンは install 自体が拒否されるため、Dependabot 側にも
+#   同じ待機期間を持たせないと「install できない PR」が立ち続ける。
+#
+#   security updates は cooldown の対象外。公開直後の修正版を掴んだ PR は lockfile
+#   更新に失敗しうる。その場合は (a) 7 日経過を待って @dependabot recreate するか、
+#   (b) 緊急なら pnpm-workspace.yaml の minimumReleaseAgeExclude に対象を一時追加して
+#   手動更新する。どちらを選んだかは PR に残す。
+
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    # pnpm workspace の lockfile はルートに 1 つだけなので、ルートを見れば
+    # shared / extension / webview の package.json も更新対象に入る。
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+      include: scope
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    groups:
+      # 開発ツールの patch / minor はまとめて 1 PR に。レビュー回数を減らす。
+      dev-tooling:
+        applies-to: version-updates
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      # ここに該当しない依存 (= 配布物に入る dependencies と、全ての major) は
+      # グループ化せず 1 件ずつ PR になる。影響範囲を個別に確認したいため。
+    ignore:
+      # extension/package.json の engines.vscode (最低サポート VS Code) と揃える型定義。
+      # engines を上げる判断と同時に手で更新する。
+      - dependency-name: "@types/vscode"
+      # Node 20 を最低ラインにしているので、型定義の major は追従させない。
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: chore(ci)
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
