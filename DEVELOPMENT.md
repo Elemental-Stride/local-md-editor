@@ -75,6 +75,21 @@ Dependabot の PR は英語でしか作られないため、[.github/workflows/d
 1. 7 日経過を待ち、PR に `@dependabot recreate` とコメントして作り直す
 2. 緊急時のみ、`pnpm-workspace.yaml` の `minimumReleaseAgeExclude` に対象パッケージを一時追加して手動更新する（マージ後に除外を戻す）
 
+### range 内で直せない脆弱性の扱い
+
+修正版が親パッケージの semver range 外にしか無い場合は、`pnpm-workspace.yaml` の `overrides` で強制的に上げる。ただし major を跨ぐ override は親パッケージの内部実装を壊しうるので、「脆弱性の実リスク > override のリスク」と言える場合だけ入れる。入れたら必ず `pnpm build` と `pnpm test` で確認し、親側が十分新しいバージョンを引くようになったらエントリを削除する。
+
+pnpm 10.33.4 には 2 つの落とし穴がある。
+
+- `overrides` に範囲（`^8.1.6` / `>=8.1.6`）を書いても transitive dependency の解決には反映されない（peer 検査にしか効かず、`unmet peer` の警告だけが出る）。**完全固定で書くこと。**
+- 既存 lockfile の解決が再利用されるため、`pnpm install` や `pnpm dedupe` では override が反映されない。lockfile を作り直す。
+
+```bash
+rm pnpm-lock.yaml
+pnpm install --lockfile-only --no-frozen-lockfile
+pnpm install
+```
+
 ### 手元での確認
 
 ```bash
