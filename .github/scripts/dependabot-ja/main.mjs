@@ -27,7 +27,13 @@ if (!prNumber) {
   process.exit(1);
 }
 
-const pr = JSON.parse(gh(["pr", "view", prNumber, "--json", "title,body,commits"]));
+const pr = JSON.parse(gh(["pr", "view", prNumber, "--json", "title,body,commits,author"]));
+
+// 手動実行でも人間が書いた PR を書き換えないようにする (gh は bot を app/<slug> で返す)。
+if (!/dependabot/i.test(pr.author?.login ?? "")) {
+  console.log(`PR #${prNumber} は Dependabot の PR ではないため何もしません。`);
+  process.exit(0);
+}
 const commitMessage = (pr.commits ?? [])
   .map((commit) => `${commit.messageHeadline}\n${commit.messageBody}`)
   .join("\n");
