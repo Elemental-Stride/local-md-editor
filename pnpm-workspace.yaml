@@ -22,3 +22,13 @@ minimumReleaseAgeIgnoreMissingTime: true
 # lockfile 不整合があれば install を失敗させる。CI 同等の安全性をローカルにも強制。
 # 依存追加・更新は明示的に `pnpm add` / `pnpm update` 経由で行う。
 frozenLockfile: true
+
+# 脆弱な transitive dependency を強制的に上げるための override。
+# 親パッケージが十分新しいバージョンを引くようになったら削除する。
+#
+# 注意: pnpm 10.33.4 では範囲指定 (`^8.1.6` / `>=8.1.6`) の override が
+# transitive の解決に反映されない (peer 検査にしか効かない) ため、完全固定で書く。
+overrides:
+  # vitest が引く vite。server.fs.deny 回避 (high) と launch-editor 系の
+  # 脆弱性 5 件に該当するため固定。vitest の要求は ^6 || ^7 || ^8 なので互換。
+  vite: "8.3.4"
