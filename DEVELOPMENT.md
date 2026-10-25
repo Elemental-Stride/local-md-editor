@@ -109,6 +109,16 @@ pnpm package    # local-md-editor-<version>.vsix を出力
 pnpm publish    # vsce publish で marketplace に公開
 ```
 
+### ワンコマンドでのビルド
+
+リポジトリを落としてきた人がそのまま `.vsix` を作れるよう、前提ツールの確認からパッケージングまでを通すスクリプトを置いてあります。
+
+```bash
+./scripts/build-vsix.sh
+```
+
+Node.js のバージョン確認 → `pnpm install --frozen-lockfile` → `pnpm build` → `vsce package` を順に実行し、生成された `.vsix` のパスとインストールコマンドを表示します。pnpm のバージョンは `packageManager` でピンしてあるため、corepack があればそちら経由で実行します。
+
 ### `@types/vscode` は `engines.vscode` と同じ版に固定する
 
 vsce は `@types/vscode` が `engines.vscode` より新しいとパッケージングを拒否する。宣言が最低サポート版より新しいと、その版に無い API を使ったコードが型チェックを通ってしまい、古い VS Code で実行時エラーになるため。

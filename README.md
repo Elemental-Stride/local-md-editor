@@ -27,6 +27,12 @@ VS Code Marketplace から **Local MD Editor** を検索してインストール
 code --install-extension local-md-editor-<version>.vsix
 ```
 
+ソースから `.vsix` を作る場合は、リポジトリを取得して次を実行します（Node.js v20 以上が必要）。
+
+```bash
+./scripts/build-vsix.sh
+```
+
 ## 使い方
 
 拡張機能をインストールすると、`.md` / `.markdown` ファイルを開いたときに自動で Local MD Editor が起動します。
