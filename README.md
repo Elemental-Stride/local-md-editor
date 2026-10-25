@@ -1,8 +1,12 @@
 # Local MD Editor
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.90.0-007ACC?logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/) [![GitHub Release](https://img.shields.io/github/v/release/Elemental-Stride/local-md-editor?color=blue)](https://github.com/Elemental-Stride/local-md-editor/releases)
+<!-- badges:start -->
 
-![Local First](https://img.shields.io/badge/Local%20First-%E2%9C%93-success) ![Privacy First](https://img.shields.io/badge/Privacy%20First-%E2%9C%93-success) ![No Telemetry](https://img.shields.io/badge/No%20Telemetry-%E2%9C%93-success) ![Offline Only](https://img.shields.io/badge/Offline%20Only-100%25-success)
+[![License: MIT](./docs/badges/license-mit.svg)](./LICENSE) [![VS Code ^1.90.0](./docs/badges/vscode.svg)](https://code.visualstudio.com/) [![release v0.1.0](./docs/badges/release.svg)](https://github.com/Elemental-Stride/local-md-editor/releases)
+
+![Local First](./docs/badges/local-first.svg) ![Privacy First](./docs/badges/privacy-first.svg) ![No Telemetry](./docs/badges/no-telemetry.svg) ![Offline Only](./docs/badges/offline-only.svg)
+
+<!-- badges:end -->
 
 VS Code 向けのローカルファースト・プライバシー重視な Notion ライク Markdown エディタ。
 
@@ -25,6 +29,12 @@ VS Code Marketplace から **Local MD Editor** を検索してインストール
 
 ```bash
 code --install-extension local-md-editor-<version>.vsix
+```
+
+ソースから `.vsix` を作る場合は、リポジトリを取得して次を実行します（Node.js v20 以上が必要）。
+
+```bash
+./scripts/build-vsix.sh
 ```
 
 ## 使い方

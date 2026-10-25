@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="97.7" height="20" role="img" aria-label="Privacy First: ✓">
+  <title>Privacy First: ✓</title>
+  <linearGradient id="g" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <clipPath id="c">
+    <rect width="97.7" height="20" rx="3" fill="#fff"/>
+  </clipPath>
+  <g clip-path="url(#c)">
+    <rect width="77.7" height="20" fill="#555"/>
+    <rect x="77.7" width="20" height="20" fill="#4c1"/>
+    <rect width="97.7" height="20" fill="url(#g)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110" transform="scale(.1)">
+    <text aria-hidden="true" x="389" y="150" fill="#010101" fill-opacity=".3" textLength="677">Privacy First</text>
+    <text x="389" y="140" textLength="677">Privacy First</text>
+  </g>
+  <path d="M84.2 10.2 l2.1 2.1 l4.9 -5.1" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+</svg>
