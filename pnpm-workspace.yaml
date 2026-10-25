@@ -32,3 +32,7 @@ overrides:
   # vitest が引く vite。server.fs.deny 回避 (high) と launch-editor 系の
   # 脆弱性 5 件に該当するため固定。vitest の要求は ^6 || ^7 || ^8 なので互換。
   vite: "8.3.4"
+  # tailwindcss が引く postcss-selector-parser。セレクタ解析の二次計算量による
+  # CPU 枯渇 (moderate) に該当するため固定。tailwindcss の要求は ^6.1.2 で
+  # major を跨ぐため、生成 CSS が変化しないことを確認した上で入れている。
+  postcss-selector-parser: "7.1.6"
