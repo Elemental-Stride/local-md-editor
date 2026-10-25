@@ -83,7 +83,7 @@
   "devDependencies": {
     "@types/mdast": "^4.0.4",
     "@types/node": "^20.19.43",
-    "@types/vscode": "^1.140.0",
+    "@types/vscode": "1.90.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.25.12"
   }

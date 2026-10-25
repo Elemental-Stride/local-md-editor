@@ -108,3 +108,9 @@ cd extension
 pnpm package    # local-md-editor-<version>.vsix を出力
 pnpm publish    # vsce publish で marketplace に公開
 ```
+
+### `@types/vscode` は `engines.vscode` と同じ版に固定する
+
+vsce は `@types/vscode` が `engines.vscode` より新しいとパッケージングを拒否する。宣言が最低サポート版より新しいと、その版に無い API を使ったコードが型チェックを通ってしまい、古い VS Code で実行時エラーになるため。
+
+caret 付き (`^1.90.0`) では 1.x の最新が解決されてこの歯止めが効かないので、完全固定 (`1.90.0`) で書く。`engines.vscode` を上げるときに手で同じ値へ揃える。Dependabot は `@types/vscode` を ignore 対象にしてある ([.github/dependabot.yml](./.github/dependabot.yml))。
