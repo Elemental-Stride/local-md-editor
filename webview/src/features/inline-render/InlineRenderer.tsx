@@ -48,6 +48,9 @@ const InlineNode = ({ token }: { token: InlineToken; }): JSX.Element => {
 
 type ImageProps = { url: string; alt: string; title?: string; };
 
+// img に inline-block を当てているのは Tailwind preflight の打ち消し。preflight は
+// img を display:block にするため、同じ段落に複数画像を並べると縦積みになる。
+// Markdown の画像はインライン要素で、バッジ列のように横へ流れるのが期待挙動。
 const ImageInline = ({ url, alt, title }: ImageProps): JSX.Element => {
   const cls = classifyUrl(url);
   if (cls.kind === "passthrough") {
@@ -57,7 +60,7 @@ const ImageInline = ({ url, alt, title }: ImageProps): JSX.Element => {
         data-md-url={url}
         alt={alt}
         title={title}
-        className="my-1 max-w-full rounded"
+        className="my-1 inline-block max-w-full rounded"
       />
     );
   }
@@ -99,7 +102,7 @@ const RelativeImage = ({ url, alt, title }: ImageProps): JSX.Element => {
       data-md-url={url}
       alt={alt}
       title={title}
-      className="my-1 max-w-full rounded"
+      className="my-1 inline-block max-w-full rounded"
     />
   );
 };

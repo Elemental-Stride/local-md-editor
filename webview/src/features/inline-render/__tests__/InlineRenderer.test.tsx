@@ -149,6 +149,26 @@ describe("renderInlines", () => {
       );
     });
 
+    test("同じ段落に並んだ複数画像を横並びで描画できる", () => {
+      // Tailwind preflight が img を display:block にするため、打ち消さないと
+      // README のバッジ列のような「1 段落に画像を複数」が縦積みになる。
+      setResolvedValue("vscode-webview://resolved/badge.svg");
+      const { container } = render(
+        <>
+          {renderInlines([
+            { type: "image", url: "./a.svg", alt: "A" },
+            text(" "),
+            { type: "image", url: "data:image/png;base64,xxx", alt: "B" },
+          ])}
+        </>,
+      );
+      const imgs = [...container.querySelectorAll("img")];
+      expect(imgs).toHaveLength(2);
+      for (const img of imgs) {
+        expect(img.className).toContain("inline-block");
+      }
+    });
+
     test("解決中は ローディング表示を出せる", () => {
       setResolvedValue(undefined);
       render(
