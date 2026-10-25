@@ -69,7 +69,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist",
-    "vscode:prepublish": "cp ../README.md ../LICENSE ../CHANGELOG.md .",
+    "vscode:prepublish": "node ../scripts/stage-extension-docs.mjs",
     "package": "vsce package --no-dependencies",
     "publish": "vsce publish --no-dependencies"
   },

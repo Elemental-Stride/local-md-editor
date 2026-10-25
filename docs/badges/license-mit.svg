@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="81.4" height="20" role="img" aria-label="License: MIT">
+  <title>License: MIT</title>
+  <linearGradient id="g" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <clipPath id="c">
+    <rect width="81.4" height="20" rx="3" fill="#fff"/>
+  </clipPath>
+  <g clip-path="url(#c)">
+    <rect width="50.7" height="20" fill="#555"/>
+    <rect x="50.7" width="30.7" height="20" fill="#dfb317"/>
+    <rect width="81.4" height="20" fill="url(#g)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110" transform="scale(.1)">
+    <text aria-hidden="true" x="254" y="150" fill="#010101" fill-opacity=".3" textLength="407">License</text>
+    <text x="254" y="140" textLength="407">License</text>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110" transform="scale(.1)">
+    <text aria-hidden="true" x="661" y="150" fill="#010101" fill-opacity=".3" textLength="207">MIT</text>
+    <text x="661" y="140" textLength="207">MIT</text>
+  </g>
+</svg>

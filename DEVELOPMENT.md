@@ -101,7 +101,7 @@ pnpm audit --audit-level high   # high 以上のみ
 
 ## パッケージング
 
-`extension/` 配下で vsce パッケージを生成します。`vscode:prepublish` がリポジトリルートの `README.md` / `LICENSE` / `CHANGELOG.md` を `extension/` にコピーするので、これらは extension/ では編集せずルートで編集してください。
+`extension/` 配下で vsce パッケージを生成します。`vscode:prepublish` から [scripts/stage-extension-docs.mjs](./scripts/stage-extension-docs.mjs) が走り、リポジトリルートの `README.md` / `LICENSE` / `CHANGELOG.md` を `extension/` へ配置します。これらは extension/ では編集せずルートで編集してください。
 
 ```bash
 cd extension
@@ -118,6 +118,14 @@ pnpm publish    # vsce publish で marketplace に公開
 ```
 
 Node.js のバージョン確認 → `pnpm install --frozen-lockfile` → `pnpm build` → `vsce package` を順に実行し、生成された `.vsix` のパスとインストールコマンドを表示します。pnpm のバージョンは `packageManager` でピンしてあるため、corepack があればそちら経由で実行します。
+
+### README のバッジはローカル SVG
+
+バッジは [docs/badges/](./docs/badges/) に静的 SVG として置き、README からは相対パスで参照しています。shields.io などのリモート画像を使わないのは、この拡張がオフライン前提で `img-src` を webview origin と `data:` に限定しており、README を自分のエディタで開いたときに外部画像が読み込めずプレースホルダになるためです。相対パスなら extension が webview URI へ解決するので、GitHub 上でもエディタ上でも同じ見た目になります。
+
+ただし vsce は Marketplace の制約から README 内の SVG 参照を拒否します。そのため `<!-- badges:start -->` ～ `<!-- badges:end -->` で囲み、`stage-extension-docs.mjs` が Marketplace 用コピーからこの範囲を落とします。マーカーを消すとパッケージングが失敗するので、スクリプト側でマーカー不在を検出して即座にエラーにしています。
+
+`docs/badges/release.svg` はバージョンを静的に持っています。リリース時に手で更新してください。
 
 ### `@types/vscode` は `engines.vscode` と同じ版に固定する
 
